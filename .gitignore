@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Env/config
+.env
+.env.*.local
+.npmrc
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Testing/coverage
+coverage/
+
+# Tooling caches
+.turbo/
+.cache/
+
+# Generated types/assets
+*.tsbuildinfo
+
+
