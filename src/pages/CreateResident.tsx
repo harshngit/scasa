@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Plus, X, Upload, ArrowLeft, Users, FileText, Home, Calendar, User, Phone, Mail, Loader2 } from 'lucide-react';
+import { Plus, X, Upload, ArrowLeft, Users, FileText, Home, Calendar, User, Phone, Mail, Loader2, Car } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -17,6 +17,12 @@ interface ResidentLiving {
   name: string;
   phoneNumber: string;
   dateJoined: string;
+}
+
+interface VehicleDetail {
+  id: string;
+  vehicleNumber: string;
+  vehicleType: string;
 }
 
 interface Document {
@@ -46,6 +52,12 @@ export default function CreateResident() {
     rentStartDate: '',
     rentEndDate: '',
     monthlyRent: '',
+    // Broker details
+    brokerName: '',
+    brokerPhone: '',
+    brokerEmail: '',
+    brokerCompany: '',
+    brokerCommission: '',
   });
 
   const [residentsList, setResidentsList] = useState<ResidentLiving[]>([]);
@@ -54,6 +66,12 @@ export default function CreateResident() {
     name: '',
     phoneNumber: '',
     dateJoined: ''
+  });
+
+  const [vehicles, setVehicles] = useState<VehicleDetail[]>([]);
+  const [newVehicle, setNewVehicle] = useState({
+    vehicleNumber: '',
+    vehicleType: ''
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -93,6 +111,31 @@ export default function CreateResident() {
 
   const removeResident = (id: string) => {
     setResidentsList(prev => prev.filter(resident => resident.id !== id));
+  };
+
+  const addVehicle = () => {
+    if (!newVehicle.vehicleNumber.trim()) {
+      toast.error('Please enter vehicle number');
+      return;
+    }
+    if (!newVehicle.vehicleType) {
+      toast.error('Please select vehicle type');
+      return;
+    }
+
+    const vehicle: VehicleDetail = {
+      id: Date.now().toString(),
+      vehicleNumber: newVehicle.vehicleNumber.trim(),
+      vehicleType: newVehicle.vehicleType
+    };
+
+    setVehicles(prev => [...prev, vehicle]);
+    setNewVehicle({ vehicleNumber: '', vehicleType: '' });
+    toast.success('Vehicle added successfully');
+  };
+
+  const removeVehicle = (id: string) => {
+    setVehicles(prev => prev.filter(vehicle => vehicle.id !== id));
   };
 
   const addDocument = () => {
@@ -258,6 +301,12 @@ export default function CreateResident() {
         }
       }
 
+      // Build vehicle_detail array
+      const vehicleDetailArray = vehicles.map(vehicle => ({
+        vehicleNumber: vehicle.vehicleNumber,
+        vehicleType: vehicle.vehicleType,
+      }));
+
       // Prepare data for database
       const residentData: any = {
         owner_name: formData.ownerName,
@@ -266,6 +315,7 @@ export default function CreateResident() {
         phone_number: formData.phoneNumber,
         email: formData.email || null,
         residents_living: residentsLivingArray,
+        vehicle_detail: vehicleDetailArray,
         documents: documentsWithUrls
       };
 
@@ -281,6 +331,12 @@ export default function CreateResident() {
         residentData.rent_start_date = formData.rentStartDate || null;
         residentData.rent_end_date = formData.rentEndDate || null;
         residentData.monthly_rent = formData.monthlyRent ? parseFloat(formData.monthlyRent) : null;
+        // Broker details
+        residentData.broker_name = formData.brokerName || null;
+        residentData.broker_phone = formData.brokerPhone || null;
+        residentData.broker_email = formData.brokerEmail || null;
+        residentData.broker_company = formData.brokerCompany || null;
+        residentData.broker_commission = formData.brokerCommission ? parseFloat(formData.brokerCommission) : null;
       }
 
       // Insert into database
@@ -598,6 +654,52 @@ export default function CreateResident() {
                     />
                   </div>
                 </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Broker Details (Optional)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerName">Broker Name</Label>
+                      <Input
+                        id="brokerName"
+                        value={formData.brokerName}
+                        onChange={(e) => handleInputChange('brokerName', e.target.value)}
+                        placeholder="Enter broker's name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerPhone">Broker Phone Number</Label>
+                      <Input
+                        id="brokerPhone"
+                        value={formData.brokerPhone}
+                        onChange={(e) => handleInputChange('brokerPhone', e.target.value)}
+                        placeholder="Enter broker's phone number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerEmail">Broker Email</Label>
+                      <Input
+                        id="brokerEmail"
+                        type="email"
+                        value={formData.brokerEmail}
+                        onChange={(e) => handleInputChange('brokerEmail', e.target.value)}
+                        placeholder="Enter broker's email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerCommission">Broker Commission (₹)</Label>
+                      <Input
+                        id="brokerCommission"
+                        type="number"
+                        value={formData.brokerCommission}
+                        onChange={(e) => handleInputChange('brokerCommission', e.target.value)}
+                        placeholder="Enter commission amount"
+                      />
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -731,6 +833,113 @@ export default function CreateResident() {
                       </tbody>
                     </table>
                     </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Vehicles */}
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Car className="h-5 w-5 text-[#8c52ff]" />
+                Vehicles
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end p-4 bg-gradient-to-br from-purple-50/50 to-pink-50/30 dark:from-purple-950/10 dark:to-pink-950/10 rounded-xl border border-purple-100 dark:border-purple-900/50">
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleNumber" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    Vehicle Number
+                  </Label>
+                  <Input
+                    id="vehicleNumber"
+                    value={newVehicle.vehicleNumber}
+                    onChange={(e) => setNewVehicle(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                    placeholder="e.g., MH-01-AB-1234"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20 bg-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleType" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    Vehicle Type
+                  </Label>
+                  <Select
+                    value={newVehicle.vehicleType}
+                    onValueChange={(value) => setNewVehicle(prev => ({ ...prev, vehicleType: value }))}
+                  >
+                    <SelectTrigger id="vehicleType" className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20">
+                      <SelectValue placeholder="Select vehicle type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="car">Car</SelectItem>
+                      <SelectItem value="bike">Bike</SelectItem>
+                      <SelectItem value="suv">SUV</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addVehicle();
+                  }}
+                  className="bg-gradient-to-r from-[#8c52ff] to-purple-600 hover:from-[#9d62ff] hover:to-purple-700 text-white shadow-lg shadow-[#8c52ff]/30 h-12 transition-all duration-300 hover:scale-105 active:scale-95"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  <span className="font-semibold">Add Vehicle</span>
+                </Button>
+              </div>
+
+              {vehicles.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Car className="h-5 w-5 text-[#8c52ff]" />
+                    Added Vehicles ({vehicles.length})
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+                          <th className="text-left py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Vehicle Number</th>
+                          <th className="text-left py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Type</th>
+                          <th className="text-right py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vehicles.map((vehicle) => (
+                          <tr
+                            key={vehicle.id}
+                            className="border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/30 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-colors duration-200"
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#8c52ff] to-purple-600 flex items-center justify-center text-white font-semibold">
+                                  <Car className="h-5 w-5" />
+                                </div>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">{vehicle.vehicleNumber}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 capitalize text-gray-700 dark:text-gray-300">
+                              {vehicle.vehicleType}
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeVehicle(vehicle.id)}
+                                className="h-9 w-9 p-0 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300 dark:hover:border-red-700 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </CardContent>

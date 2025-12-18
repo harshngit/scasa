@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Plus, X, ArrowLeft, Loader2 } from 'lucide-react';
+import { Plus, X, ArrowLeft, Loader2, Car } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +16,12 @@ interface ResidentLiving {
   name: string;
   phoneNumber: string;
   dateJoined: string;
+}
+
+interface VehicleDetail {
+  id: string;
+  vehicleNumber: string;
+  vehicleType: string;
 }
 
 interface Document {
@@ -47,6 +53,12 @@ export default function EditResident() {
     rentStartDate: '',
     rentEndDate: '',
     monthlyRent: '',
+    // Broker details
+    brokerName: '',
+    brokerPhone: '',
+    brokerEmail: '',
+    brokerCompany: '',
+    brokerCommission: '',
   });
 
   const [residentsList, setResidentsList] = useState<ResidentLiving[]>([]);
@@ -55,6 +67,11 @@ export default function EditResident() {
     name: '',
     phoneNumber: '',
     dateJoined: ''
+  });
+  const [vehicles, setVehicles] = useState<VehicleDetail[]>([]);
+  const [newVehicle, setNewVehicle] = useState({
+    vehicleNumber: '',
+    vehicleType: ''
   });
 
   useEffect(() => {
@@ -97,6 +114,11 @@ export default function EditResident() {
           rentStartDate: data.rent_start_date || '',
           rentEndDate: data.rent_end_date || '',
           monthlyRent: data.monthly_rent ? data.monthly_rent.toString() : '',
+          brokerName: data.broker_name || '',
+          brokerPhone: data.broker_phone || '',
+          brokerEmail: data.broker_email || '',
+          brokerCompany: data.broker_company || '',
+          brokerCommission: data.broker_commission ? data.broker_commission.toString() : '',
         });
 
         // Populate residents list
@@ -119,6 +141,16 @@ export default function EditResident() {
             url: doc.url || ''
           }));
           setDocuments(docs);
+        }
+
+        // Populate vehicles
+        if (data.vehicle_detail && Array.isArray(data.vehicle_detail)) {
+          const vehs = data.vehicle_detail.map((v: any, index: number) => ({
+            id: index.toString(),
+            vehicleNumber: v.vehicleNumber || v.vehicle_number || '',
+            vehicleType: v.vehicleType || v.vehicle_type || '',
+          }));
+          setVehicles(vehs);
         }
       }
     } catch (error) {
@@ -165,6 +197,31 @@ export default function EditResident() {
 
   const removeResident = (id: string) => {
     setResidentsList(prev => prev.filter(resident => resident.id !== id));
+  };
+
+  const addVehicle = () => {
+    if (!newVehicle.vehicleNumber.trim()) {
+      toast.error('Please enter vehicle number');
+      return;
+    }
+    if (!newVehicle.vehicleType) {
+      toast.error('Please select vehicle type');
+      return;
+    }
+
+    const vehicle: VehicleDetail = {
+      id: Date.now().toString(),
+      vehicleNumber: newVehicle.vehicleNumber.trim(),
+      vehicleType: newVehicle.vehicleType,
+    };
+
+    setVehicles(prev => [...prev, vehicle]);
+    setNewVehicle({ vehicleNumber: '', vehicleType: '' });
+    toast.success('Vehicle added successfully');
+  };
+
+  const removeVehicle = (id: string) => {
+    setVehicles(prev => prev.filter(vehicle => vehicle.id !== id));
   };
 
   const addDocument = () => {
@@ -332,6 +389,11 @@ export default function EditResident() {
         }
       }
 
+      const vehicleDetailArray = vehicles.map(vehicle => ({
+        vehicleNumber: vehicle.vehicleNumber,
+        vehicleType: vehicle.vehicleType,
+      }));
+
       const residentData: any = {
         owner_name: formData.ownerName,
         flat_number: formData.flatNumber,
@@ -339,6 +401,7 @@ export default function EditResident() {
         phone_number: formData.phoneNumber,
         email: formData.email || null,
         residents_living: residentsLivingArray,
+        vehicle_detail: vehicleDetailArray,
         documents: documentsWithUrls
       };
 
@@ -353,6 +416,12 @@ export default function EditResident() {
         residentData.rent_start_date = formData.rentStartDate || null;
         residentData.rent_end_date = formData.rentEndDate || null;
         residentData.monthly_rent = formData.monthlyRent ? parseFloat(formData.monthlyRent) : null;
+        // Broker details
+        residentData.broker_name = formData.brokerName || null;
+        residentData.broker_phone = formData.brokerPhone || null;
+        residentData.broker_email = formData.brokerEmail || null;
+        residentData.broker_company = formData.brokerCompany || null;
+        residentData.broker_commission = formData.brokerCommission ? parseFloat(formData.brokerCommission) : null;
       }
 
       const savingToastId = toast.loading('Updating resident data...');
@@ -602,6 +671,52 @@ export default function EditResident() {
                     />
                   </div>
                 </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Broker Details (Optional)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerName">Broker Name</Label>
+                      <Input
+                        id="brokerName"
+                        value={formData.brokerName}
+                        onChange={(e) => handleInputChange('brokerName', e.target.value)}
+                        placeholder="Enter broker's name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerPhone">Broker Phone Number</Label>
+                      <Input
+                        id="brokerPhone"
+                        value={formData.brokerPhone}
+                        onChange={(e) => handleInputChange('brokerPhone', e.target.value)}
+                        placeholder="Enter broker's phone number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerEmail">Broker Email</Label>
+                      <Input
+                        id="brokerEmail"
+                        type="email"
+                        value={formData.brokerEmail}
+                        onChange={(e) => handleInputChange('brokerEmail', e.target.value)}
+                        placeholder="Enter broker's email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brokerCommission">Broker Commission (₹)</Label>
+                      <Input
+                        id="brokerCommission"
+                        type="number"
+                        value={formData.brokerCommission}
+                        onChange={(e) => handleInputChange('brokerCommission', e.target.value)}
+                        placeholder="Enter commission amount"
+                      />
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -668,6 +783,78 @@ export default function EditResident() {
                         variant="outline"
                         size="sm"
                         onClick={() => removeResident(resident.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Vehicles */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Vehicles</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+                  <Input
+                    id="vehicleNumber"
+                    value={newVehicle.vehicleNumber}
+                    onChange={(e) => setNewVehicle(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                    placeholder="e.g., MH-01-AB-1234"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleType">Vehicle Type</Label>
+                  <Select
+                    value={newVehicle.vehicleType}
+                    onValueChange={(value) => setNewVehicle(prev => ({ ...prev, vehicleType: value }))}
+                  >
+                    <SelectTrigger id="vehicleType">
+                      <SelectValue placeholder="Select vehicle type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="car">Car</SelectItem>
+                      <SelectItem value="bike">Bike</SelectItem>
+                      <SelectItem value="suv">SUV</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addVehicle();
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Vehicle
+                </Button>
+              </div>
+
+              {vehicles.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Added Vehicles:</h4>
+                  {vehicles.map((vehicle) => (
+                    <div key={vehicle.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Car className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{vehicle.vehicleNumber}</div>
+                          <div className="text-sm text-muted-foreground capitalize">{vehicle.vehicleType}</div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeVehicle(vehicle.id)}
                       >
                         <X className="h-4 w-4" />
                       </Button>

@@ -8,14 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { 
-  Search, 
-  Download, 
-  Calendar, 
-  CreditCard, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
+import {
+  Search,
+  Download,
+  Calendar,
+  CreditCard,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
   FileText,
   Loader2,
   Plus,
@@ -26,10 +26,11 @@ import {
   DollarSign
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { generateInvoice } from '@/lib/invoice-generator';
+import { generateInvoice, generateAllInvoices } from '@/lib/invoice-generator';
 import { generateReceipt, generateAllReceipts } from '@/lib/receipt-generator';
 import { getCurrentUser, isAdminOrReceptionist } from '@/lib/auth';
 import { cn } from '@/lib/utils';
@@ -58,8 +59,8 @@ interface Resident {
   owner_name: string;
 }
 
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                'July', 'August', 'September', 'October', 'November', 'December'];
+const months = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default function MaintenancePayments() {
   const currentUser = getCurrentUser();
@@ -81,6 +82,8 @@ export default function MaintenancePayments() {
   const [receiptNumber, setReceiptNumber] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [isPaying, setIsPaying] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
 
   // Preview Invoice Dialog State
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -112,16 +115,16 @@ export default function MaintenancePayments() {
       // Update status based on due date
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const updatedPayments = (data || []).map(payment => {
         const dueDate = new Date(payment.due_date);
         dueDate.setHours(0, 0, 0, 0);
-        
+
         let status = payment.status;
         if (status === 'unpaid' && dueDate < today) {
           status = 'overdue';
         }
-        
+
         return { ...payment, status };
       });
 
@@ -297,11 +300,11 @@ export default function MaintenancePayments() {
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.flat_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.resident_name.toLowerCase().includes(searchTerm.toLowerCase());
+      payment.resident_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || payment.status === filterStatus;
     const matchesMonth = filterMonth === 'all' || months[payment.month - 1] === filterMonth;
     const matchesYear = filterYear === 'all' || payment.year.toString() === filterYear;
-    
+
     return matchesSearch && matchesStatus && matchesMonth && matchesYear;
   });
 
@@ -336,12 +339,12 @@ export default function MaintenancePayments() {
       const paymentType = totalAmount >= payment.amount ? 'Full' : 'Part';
 
       generateReceipt({
-      receiptNumber: payment.receipt_number,
+        receiptNumber: payment.receipt_number,
         date: receiptDate,
         buildingNumber: buildingNumber,
         floor: floor,
-      flatNumber: payment.flat_number,
-      residentName: payment.resident_name,
+        flatNumber: payment.flat_number,
+        residentName: payment.resident_name,
         amount: totalAmount,
         paymentMethod: payment.payment_method || 'Cash',
         chequeNumber: payment.payment_method?.toLowerCase().includes('cheque') ? payment.receipt_number : undefined,
@@ -362,7 +365,7 @@ export default function MaintenancePayments() {
     }
   };
 
-  const handleGenerateInvoice = async (payment: MaintenancePayment) => {
+  const handleGenerateInvoice = async (payment: MaintenancePayment, silent: boolean = false) => {
     try {
       // Use dynamic charges from state, or default charges if not set
       const chargesToUse = invoiceCharges.length > 0 && invoiceCharges.some(c => c.label.trim() !== '')
@@ -390,13 +393,13 @@ export default function MaintenancePayments() {
 
         if (updateError) {
           console.error('Error updating payment amount:', updateError);
-          toast.error('Failed to update payment amount');
+          if (!silent) toast.error('Failed to update payment amount');
         } else {
           // Update local state
           setPayments(prev => prev.map(p =>
             p.id === payment.id ? { ...p, amount: invoiceTotal } : p
           ));
-          toast.success(`Payment amount updated to ₹${invoiceTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`);
+          if (!silent) toast.success(`Payment amount updated to ₹${invoiceTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`);
         }
       }
 
@@ -407,8 +410,8 @@ export default function MaintenancePayments() {
         billNumber: payment.receipt_number || `BILL-${payment.id.slice(0, 8).toUpperCase()}`,
         residentName: payment.resident_name,
         flatNumber: payment.flat_number,
-      month: months[payment.month - 1],
-      year: payment.year,
+        month: months[payment.month - 1],
+        year: payment.year,
         date: billDate,
         area: '900 Sq. Ft.', // Adding area as shown in the image
         charges: chargesToUse,
@@ -421,10 +424,61 @@ export default function MaintenancePayments() {
         phoneNumber: '022 35187410',
       });
 
-      toast.success('Invoice generated successfully!');
+      if (!silent) toast.success('Invoice generated successfully!');
     } catch (error: any) {
       console.error('Error generating invoice:', error);
-      toast.error('Failed to generate invoice');
+      if (!silent) toast.error('Failed to generate invoice');
+    }
+  };
+
+  const handleToggleInvoiceSelection = (paymentId: string) => {
+    setSelectedInvoices(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(paymentId)) {
+        newSet.delete(paymentId);
+      } else {
+        newSet.add(paymentId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedInvoices(new Set(filteredPayments.map(p => p.id)));
+    } else {
+      setSelectedInvoices(new Set());
+    }
+  };
+
+  const handleBulkDownloadInvoices = async () => {
+    if (selectedInvoices.size === 0) {
+      toast.error('Please select at least one invoice');
+      return;
+    }
+
+    setIsBulkDownloading(true);
+    const selectedPayments = filteredPayments.filter(p => selectedInvoices.has(p.id));
+    const totalInvoices = selectedPayments.length;
+
+    try {
+      for (let i = 0; i < selectedPayments.length; i++) {
+        const payment = selectedPayments[i];
+        await handleGenerateInvoice(payment, true);
+
+        // Add a small delay between downloads to avoid browser blocking
+        if (i < selectedPayments.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      toast.success(`Successfully downloaded ${totalInvoices} invoice(s)!`);
+      setSelectedInvoices(new Set());
+    } catch (error: any) {
+      console.error('Error downloading invoices:', error);
+      toast.error('Failed to download some invoices');
+    } finally {
+      setIsBulkDownloading(false);
     }
   };
 
@@ -477,6 +531,62 @@ export default function MaintenancePayments() {
     } catch (error: any) {
       console.error('Error generating all receipts:', error);
       toast.error('Failed to generate receipts');
+    }
+  };
+
+  const downloadAllInvoices = async () => {
+    if (payments.length === 0) {
+      toast.error('No payments found to generate invoices.');
+      return;
+    }
+
+    setIsBulkDownloading(true);
+
+    try {
+      // Use dynamic charges from state, or default charges if not set
+      const chargesToUse = invoiceCharges.length > 0 && invoiceCharges.some(c => c.label.trim() !== '')
+        ? invoiceCharges.filter(c => c.label.trim() !== '').map(c => ({
+          label: c.label,
+          amount: c.amount
+        }))
+        : [
+          { label: 'REPAIR & MAINTAINANCE', amount: 460 },
+          { label: 'SERVICE CHARGES', amount: 1865 },
+          { label: 'SINKING FUND', amount: 75 },
+          { label: 'TMC TAXES PROPERTY/WATER', amount: 650 },
+          { label: 'FEDERATION CHARGES', amount: 800 },
+        ];
+
+      const invoiceDate = new Date();
+      const billDate = `${String(invoiceDate.getDate()).padStart(2, '0')}.${String(invoiceDate.getMonth() + 1).padStart(2, '0')}.${invoiceDate.getFullYear()}`;
+
+      // Prepare all invoice data
+      const allInvoices = payments.map(payment => ({
+        billNumber: payment.receipt_number || `BILL-${payment.id.slice(0, 8).toUpperCase()}`,
+        residentName: payment.resident_name,
+        flatNumber: payment.flat_number,
+        month: months[payment.month - 1],
+        year: payment.year,
+        date: billDate,
+        area: '900 Sq. Ft.',
+        charges: chargesToUse,
+        arrears: 0,
+        interest: payment.late_fee || 0,
+        creditBalance: 0,
+        societyName: 'HAPPY VALLEY PHASE-1 CO-OP HOUSING SOCIETY LTD.',
+        registrationNumber: 'TNA/(TNA)/HSG/(TC)/11999/2000',
+        address: 'MANPADA, THANE (WEST)-400 610',
+        phoneNumber: '022 35187410',
+      }));
+
+      // Generate all invoices in one PDF
+      generateAllInvoices(allInvoices);
+      toast.success(`Successfully downloaded ${allInvoices.length} invoice(s) in one PDF!`);
+    } catch (error: any) {
+      console.error('Error downloading all invoices:', error);
+      toast.error('Failed to download invoices');
+    } finally {
+      setIsBulkDownloading(false);
     }
   };
 
@@ -657,47 +767,62 @@ export default function MaintenancePayments() {
           {/* Animated background gradients */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
-          
+
           <div className="relative z-10 flex items-center justify-between">
             {/* Left Side - Content */}
             <div className="flex-1 animate-fade-in">
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 animate-gradient">
                 Maintenance Payments
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-lg">
-              Track maintenance payments, receipts, and payment history (₹2000 per flat)
-            </p>
-          </div>
+            </div>
 
             {/* Right Side - Buttons */}
-          {isAdminOrReceptionist() && (
+            {isAdminOrReceptionist() && (
               <div className="ml-6 flex gap-3 animate-slide-in-right">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowGenerateDialog(true)}
                   className="border-gray-200 hover:border-[#8c52ff] hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md px-5 py-6 h-auto"
                 >
                   <Plus className="mr-2 h-5 w-5" />
                   <span className="font-semibold">Generate Payments</span>
-            </Button>
-                <Button 
-                  variant="outline" 
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={downloadAllInvoices}
+                  disabled={isBulkDownloading}
+                  className="border-gray-200 hover:border-[#8c52ff] hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md px-5 py-6 h-auto"
+                >
+                  {isBulkDownloading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <span className="font-semibold">Downloading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Receipt className="mr-2 h-5 w-5" />
+                      <span className="font-semibold">Download All Invoices</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={downloadAllReceipts}
                   className="border-gray-200 hover:border-[#8c52ff] hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md px-5 py-6 h-auto"
                 >
                   <Download className="mr-2 h-5 w-5" />
                   <span className="font-semibold">Download All Receipts</span>
-            </Button>
-                <Button 
-                  variant="outline" 
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={exportToCSV}
                   className="border-gray-200 hover:border-[#8c52ff] hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md px-5 py-6 h-auto"
                 >
                   <FileText className="mr-2 h-5 w-5" />
                   <span className="font-semibold">Export CSV</span>
-            </Button>
-          </div>
-          )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -756,13 +881,13 @@ export default function MaintenancePayments() {
                   'absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500',
                   card.bgGradient
                 )} />
-                
+
                 {/* Left accent bar with gradient */}
                 <div className={cn(
                   'absolute left-0 top-0 h-full w-1.5 bg-gradient-to-b transition-all duration-500 group-hover:w-2',
                   card.gradient
                 )} />
-                
+
                 {/* Decorative corner element */}
                 <div className={cn(
                   'absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br opacity-0 group-hover:opacity-20 blur-2xl transition-opacity duration-500',
@@ -885,202 +1010,248 @@ export default function MaintenancePayments() {
                     </div>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
-                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Flat Number</TableHead>
-                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Resident Name</TableHead>
-                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Period</TableHead>
-                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Amount</TableHead>
-                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Due Date</TableHead>
-                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Status</TableHead>
-                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Payment Date</TableHead>
-                          <TableHead className="text-right font-semibold text-gray-900 dark:text-gray-100 py-4">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPayments.map((payment, idx) => {
-                          return (
-                            <TableRow 
-                              key={payment.id}
-                              className={cn(
-                                "border-b border-gray-100 dark:border-gray-800 transition-colors duration-200",
-                                "hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/30 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20",
-                                idx % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/50 dark:bg-gray-800/50"
-                              )}
-                            >
-                              <TableCell className="py-4">
-                                <Badge 
-                                  variant="outline" 
-                                  className="border-[#8c52ff]/30 text-[#8c52ff] bg-[#8c52ff]/5 font-medium px-3 py-1"
-                                >
-                                  {payment.flat_number}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-4 font-semibold text-gray-900 dark:text-gray-100">
-                                {payment.resident_name}
-                              </TableCell>
-                              <TableCell className="py-4 text-gray-700 dark:text-gray-300">
-                                {months[payment.month - 1]} {payment.year}
-                              </TableCell>
-                              <TableCell className="py-4">
-                                <div>
-                                  <div className="font-semibold text-gray-900 dark:text-gray-100">
-                                    ₹<CountUpNumber value={Math.round(payment.amount)} />
-                                  </div>
-                                  {payment.late_fee > 0 && (
-                                    <div className="text-xs text-red-600 font-medium">
-                                      Late Fee: ₹<CountUpNumber value={Math.round(payment.late_fee)} />
-                                    </div>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-4 text-gray-600 dark:text-gray-400 font-medium">
-                                {new Date(payment.due_date).toLocaleDateString('en-US', { 
-                                  year: 'numeric', 
-                                  month: 'short', 
-                                  day: 'numeric' 
-                                })}
-                              </TableCell>
-                              <TableCell className="py-4">
-                                <StatusBadge status={payment.status} />
-                              </TableCell>
-                              <TableCell className="py-4 text-gray-600 dark:text-gray-400 font-medium">
-                                {payment.paid_date ? new Date(payment.paid_date).toLocaleDateString('en-US', { 
-                                  year: 'numeric', 
-                                  month: 'short', 
-                                  day: 'numeric' 
-                                }) : '-'}
-                              </TableCell>
-                              <TableCell className="text-right py-4">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Button
+                  <div className="space-y-4">
+                    {/* Bulk Actions */}
+                    <div className="px-6 pt-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selectedInvoices.size === filteredPayments.length && filteredPayments.length > 0}
+                            onCheckedChange={handleSelectAll}
+                            disabled={isBulkDownloading}
+                          />
+                          <Label className="text-sm font-medium">
+                            Select All ({selectedInvoices.size} selected)
+                          </Label>
+                        </div>
+                      </div>
+                      {selectedInvoices.size > 0 && (
+                        <Button
+                          onClick={handleBulkDownloadInvoices}
+                          disabled={isBulkDownloading}
+                          className="bg-[#8c52ff] hover:bg-[#7a45e6] text-white"
+                        >
+                          {isBulkDownloading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Downloading {selectedInvoices.size} invoice(s)...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4 mr-2" />
+                              Download Selected ({selectedInvoices.size})
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+                            <TableHead className="w-12 font-semibold text-gray-900 dark:text-gray-100 py-4"></TableHead>
+                            <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Flat Number</TableHead>
+                            <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Resident Name</TableHead>
+                            <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Period</TableHead>
+                            <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Amount</TableHead>
+                            <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Due Date</TableHead>
+                            <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Status</TableHead>
+                            <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Payment Date</TableHead>
+                            <TableHead className="text-right font-semibold text-gray-900 dark:text-gray-100 py-4">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPayments.map((payment, idx) => {
+                            return (
+                              <TableRow
+                                key={payment.id}
+                                className={cn(
+                                  "border-b border-gray-100 dark:border-gray-800 transition-colors duration-200",
+                                  "hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/30 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20",
+                                  idx % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/50 dark:bg-gray-800/50"
+                                )}
+                              >
+                                <TableCell className="py-4">
+                                  <Checkbox
+                                    checked={selectedInvoices.has(payment.id)}
+                                    onCheckedChange={() => handleToggleInvoiceSelection(payment.id)}
+                                    disabled={isBulkDownloading}
+                                  />
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <Badge
                                     variant="outline"
-                                    size="sm"
-                                    onClick={() => handleGenerateInvoice(payment)}
-                                    title="Generate Invoice"
-                                    className="h-9 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-950/20 hover:border-purple-300 dark:hover:border-purple-700 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200"
+                                    className="border-[#8c52ff]/30 text-[#8c52ff] bg-[#8c52ff]/5 font-medium px-3 py-1"
                                   >
-                                    <Receipt className="h-4 w-4 mr-2" />
-                                    Invoice
-                                  </Button>
-                                  {isAdminOrReceptionist() && (payment.status === 'unpaid' || payment.status === 'overdue' || payment.status === 'partial') && (
-                                    <Button
-                                      variant="default"
-                                      size="sm"
-                                      onClick={() => handleOpenPaymentDialog(payment)}
-                                      disabled={isPaying}
-                                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-200 font-semibold h-9"
-                                      title="Mark as Paid"
-                                    >
-                                      <CheckCircle className="mr-2 h-4 w-4" />
-                                      Paid
-                                    </Button>
-                                  )}
-                                  {payment.status === 'paid' && payment.receipt_number && (
+                                    {payment.flat_number}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-4 font-semibold text-gray-900 dark:text-gray-100">
+                                  {payment.resident_name}
+                                </TableCell>
+                                <TableCell className="py-4 text-gray-700 dark:text-gray-300">
+                                  {months[payment.month - 1]} {payment.year}
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <div>
+                                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                      ₹<CountUpNumber value={Math.round(payment.amount)} />
+                                    </div>
+                                    {payment.late_fee > 0 && (
+                                      <div className="text-xs text-red-600 font-medium">
+                                        Late Fee: ₹<CountUpNumber value={Math.round(payment.late_fee)} />
+                                      </div>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4 text-gray-600 dark:text-gray-400 font-medium">
+                                  {new Date(payment.due_date).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <StatusBadge status={payment.status} />
+                                </TableCell>
+                                <TableCell className="py-4 text-gray-600 dark:text-gray-400 font-medium">
+                                  {payment.paid_date ? new Date(payment.paid_date).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  }) : '-'}
+                                </TableCell>
+                                <TableCell className="text-right py-4">
+                                  <div className="flex items-center justify-end gap-2">
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => downloadReceipt(payment)}
-                                      className="h-9 w-9 p-0 border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
+                                      onClick={() => handleGenerateInvoice(payment)}
+                                      title="Generate Invoice"
+                                      disabled={isBulkDownloading}
+                                      className="h-9 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-950/20 hover:border-purple-300 dark:hover:border-purple-700 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200"
                                     >
-                                      <Download className="h-4 w-4" />
+                                      <Receipt className="h-4 w-4 mr-2" />
+                                      Invoice
                                     </Button>
-                                  )}
-                                  <Dialog>
-                                    <DialogTrigger asChild>
+                                    {isAdminOrReceptionist() && (payment.status === 'unpaid' || payment.status === 'overdue' || payment.status === 'partial') && (
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => handleOpenPaymentDialog(payment)}
+                                        disabled={isPaying}
+                                        className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-200 font-semibold h-9"
+                                        title="Mark as Paid"
+                                      >
+                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                        Paid
+                                      </Button>
+                                    )}
+                                    {payment.status === 'paid' && payment.receipt_number && (
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setSelectedPayment(payment)}
-                                        className="h-9 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+                                        onClick={() => downloadReceipt(payment)}
+                                        className="h-9 w-9 p-0 border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
                                       >
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        View Details
+                                        <Download className="h-4 w-4" />
                                       </Button>
-                                    </DialogTrigger>
-                                  <DialogContent className="sm:max-w-[500px]">
-                                    <DialogHeader>
-                                      <DialogTitle>Payment Details</DialogTitle>
-                                    </DialogHeader>
-                                    {selectedPayment && (
-                                      <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <Label className="text-sm font-medium text-muted-foreground">Flat Number</Label>
-                                            <div className="font-medium">{selectedPayment.flat_number}</div>
-                                          </div>
-                                          <div>
-                                            <Label className="text-sm font-medium text-muted-foreground">Resident</Label>
-                                            <div className="font-medium">{selectedPayment.resident_name}</div>
-                                          </div>
-                                          <div>
-                                            <Label className="text-sm font-medium text-muted-foreground">Period</Label>
-                                            <div className="font-medium">{months[selectedPayment.month - 1]} {selectedPayment.year}</div>
-                                          </div>
-                                          <div>
-                                            <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                                            <StatusBadge status={selectedPayment.status} />
-                                          </div>
-                                          <div>
-                                            <Label className="text-sm font-medium text-muted-foreground">Amount</Label>
-                                            <div className="font-medium">₹{selectedPayment.amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                          </div>
-                                          {selectedPayment.late_fee > 0 && (
-                                            <div>
-                                              <Label className="text-sm font-medium text-muted-foreground">Late Fee</Label>
-                                              <div className="font-medium text-red-600">₹{selectedPayment.late_fee.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                            </div>
-                                          )}
-                                          <div>
-                                            <Label className="text-sm font-medium text-muted-foreground">Due Date</Label>
-                                            <div className="font-medium">{new Date(selectedPayment.due_date).toLocaleDateString()}</div>
-                                          </div>
-                                          {selectedPayment.paid_date && (
-                                            <div>
-                                              <Label className="text-sm font-medium text-muted-foreground">Paid Date</Label>
-                                              <div className="font-medium">{new Date(selectedPayment.paid_date).toLocaleDateString()}</div>
-                                            </div>
-                                          )}
-                                          {selectedPayment.payment_method && (
-                                            <div>
-                                              <Label className="text-sm font-medium text-muted-foreground">Payment Method</Label>
-                                              <div className="font-medium">{selectedPayment.payment_method}</div>
-                                            </div>
-                                          )}
-                                          {selectedPayment.receipt_number && (
-                                            <div>
-                                              <Label className="text-sm font-medium text-muted-foreground">Receipt Number</Label>
-                                              <div className="font-medium">{selectedPayment.receipt_number}</div>
-                                            </div>
-                                          )}
-                                        </div>
-                                        {selectedPayment.notes && (
-                                          <div>
-                                            <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
-                                            <div className="font-medium">{selectedPayment.notes}</div>
-                                          </div>
-                                        )}
-                                        {selectedPayment.status === 'paid' && selectedPayment.receipt_number && (
-                                          <div className="flex justify-end">
-                                            <Button onClick={() => downloadReceipt(selectedPayment)}>
-                                              <Download className="mr-2 h-4 w-4" />
-                                              Download Receipt
-                                            </Button>
-                                          </div>
-                                        )}
-                                      </div>
                                     )}
-                                  </DialogContent>
-                                </Dialog>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => setSelectedPayment(payment)}
+                                          className="h-9 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+                                        >
+                                          <Eye className="h-4 w-4 mr-2" />
+                                          View Details
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-[500px]">
+                                        <DialogHeader>
+                                          <DialogTitle>Payment Details</DialogTitle>
+                                        </DialogHeader>
+                                        {selectedPayment && (
+                                          <div className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Flat Number</Label>
+                                                <div className="font-medium">{selectedPayment.flat_number}</div>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Resident</Label>
+                                                <div className="font-medium">{selectedPayment.resident_name}</div>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Period</Label>
+                                                <div className="font-medium">{months[selectedPayment.month - 1]} {selectedPayment.year}</div>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                                                <StatusBadge status={selectedPayment.status} />
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Amount</Label>
+                                                <div className="font-medium">₹{selectedPayment.amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                              </div>
+                                              {selectedPayment.late_fee > 0 && (
+                                                <div>
+                                                  <Label className="text-sm font-medium text-muted-foreground">Late Fee</Label>
+                                                  <div className="font-medium text-red-600">₹{selectedPayment.late_fee.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                                </div>
+                                              )}
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Due Date</Label>
+                                                <div className="font-medium">{new Date(selectedPayment.due_date).toLocaleDateString()}</div>
+                                              </div>
+                                              {selectedPayment.paid_date && (
+                                                <div>
+                                                  <Label className="text-sm font-medium text-muted-foreground">Paid Date</Label>
+                                                  <div className="font-medium">{new Date(selectedPayment.paid_date).toLocaleDateString()}</div>
+                                                </div>
+                                              )}
+                                              {selectedPayment.payment_method && (
+                                                <div>
+                                                  <Label className="text-sm font-medium text-muted-foreground">Payment Method</Label>
+                                                  <div className="font-medium">{selectedPayment.payment_method}</div>
+                                                </div>
+                                              )}
+                                              {selectedPayment.receipt_number && (
+                                                <div>
+                                                  <Label className="text-sm font-medium text-muted-foreground">Receipt Number</Label>
+                                                  <div className="font-medium">{selectedPayment.receipt_number}</div>
+                                                </div>
+                                              )}
+                                            </div>
+                                            {selectedPayment.notes && (
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
+                                                <div className="font-medium">{selectedPayment.notes}</div>
+                                              </div>
+                                            )}
+                                            {selectedPayment.status === 'paid' && selectedPayment.receipt_number && (
+                                              <div className="flex justify-end">
+                                                <Button onClick={() => downloadReceipt(selectedPayment)}>
+                                                  <Download className="mr-2 h-4 w-4" />
+                                                  Download Receipt
+                                                </Button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -1143,14 +1314,14 @@ export default function MaintenancePayments() {
                                 <Receipt className="h-4 w-4 mr-2" />
                                 Invoice
                               </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => downloadReceipt(payment)}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => downloadReceipt(payment)}
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Download
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1279,9 +1450,9 @@ export default function MaintenancePayments() {
                                   <Receipt className="h-4 w-4 mr-2" />
                                   Invoice
                                 </Button>
-                              <Button size="sm" variant="destructive">
-                                Send Notice
-                              </Button>
+                                <Button size="sm" variant="destructive">
+                                  Send Notice
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -1349,13 +1520,13 @@ export default function MaintenancePayments() {
                               <Receipt className="h-4 w-4 mr-2" />
                               Invoice
                             </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => downloadReceipt(payment)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadReceipt(payment)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       ))}

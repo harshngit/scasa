@@ -13,7 +13,10 @@ import {
   CreditCard,
   Building2,
   UserCog,
-  LogOut
+  LogOut,
+  HandHeart,
+  UserPlus,
+  Megaphone
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getCurrentUser, hasPermission } from '@/lib/auth';
@@ -29,6 +32,7 @@ const navigation: Array<{
     { name: 'Dashboard', href: '/dashboard', icon: Home, permission: 'dashboard' },
     { name: 'Residents', href: '/residents', icon: Users, permission: 'residents' },
     { name: 'Maintenance Payments', href: '/maintenance-payments', icon: CreditCard, permission: 'maintenance_payments' },
+    { name: 'Notice Board', href: '/notices', icon: Megaphone, permission: 'notices' },
     // Commented out - to be implemented later
     // { name: 'Amenities', href: '/amenities', icon: Calendar, permission: 'amenities' },
     // { name: 'Finance', href: '/finance', icon: DollarSign, permission: 'finance' },
@@ -37,6 +41,8 @@ const navigation: Array<{
     // { name: 'Advanced Security', href: '/security-advanced', icon: Camera, permission: 'security' },
     // { name: 'Parking', href: '/parking', icon: Car, permission: 'parking' },
     { name: 'Vendors', href: '/vendors', icon: Building2, permission: 'vendors' },
+    { name: 'Helpers', href: '/helpers', icon: HandHeart, permission: 'users' },
+    // { name: 'Add Helper', href: '/helpers/create', icon: UserPlus, permission: 'users' },
     { name: 'Users', href: '/users', icon: UserCog, permission: 'users', adminOnly: true },
   ];
 
@@ -108,17 +114,17 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                   <span
                     className={cn(
                       'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full transition-all duration-300',
-                      isActive 
-                        ? 'opacity-100 bg-white shadow-sm' 
+                      isActive
+                        ? 'opacity-100 bg-white shadow-sm'
                         : 'opacity-0 group-hover:opacity-100 bg-[#8c52ff] h-6'
                     )}
                   />
-                  
+
                   {/* Icon with better sizing */}
                   <div className={cn(
                     'flex items-center justify-center transition-all duration-300',
-                    isActive 
-                      ? 'text-white' 
+                    isActive
+                      ? 'text-white'
                       : 'text-gray-600 group-hover:text-[#8c52ff]',
                     !isCollapsed && 'mr-3'
                   )}>
@@ -130,7 +136,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                       )}
                     />
                   </div>
-                  
+
                   {/* Text */}
                   {!isCollapsed && (
                     <span
@@ -142,7 +148,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                       {item.name}
                     </span>
                   )}
-                  
+
                   {/* Hover arrow indicator */}
                   {!isCollapsed && !isActive && (
                     <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300">

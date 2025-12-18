@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit, Phone, Mail, Calendar, Users, FileText, Download, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, Calendar, Users, FileText, Download, Loader2, Trash2, Car } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -37,7 +37,13 @@ interface ResidentData {
   rent_start_date: string | null;
   rent_end_date: string | null;
   monthly_rent: number | null;
+  broker_name: string | null;
+  broker_phone: string | null;
+  broker_email: string | null;
+  broker_company: string | null;
+  broker_commission: number | null;
   residents_living: any[];
+  vehicle_detail?: any[];
   documents: any[];
   created_at: string;
   updated_at: string;
@@ -205,6 +211,10 @@ export default function ResidentDetail() {
                       <span>{resident.residents_living?.length || 0} resident(s) living</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm">
+                      <Car className="h-4 w-4 text-muted-foreground" />
+                      <span>{resident.vehicle_detail?.length || 0} vehicle(s)</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span>Registered: {new Date(resident.created_at).toLocaleDateString()}</span>
                     </div>
@@ -304,6 +314,40 @@ export default function ResidentDetail() {
                     )}
                   </div>
                 </div>
+                {(resident.broker_name || resident.broker_phone || resident.broker_email || resident.broker_commission) && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Broker Details</h4>
+                      <div className="space-y-2">
+                        {resident.broker_name && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Broker Name:</span>
+                            <span className="font-medium">{resident.broker_name}</span>
+                          </div>
+                        )}
+                        {resident.broker_phone && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Broker Phone:</span>
+                            <span className="font-medium">{resident.broker_phone}</span>
+                          </div>
+                        )}
+                        {resident.broker_email && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Broker Email:</span>
+                            <span className="font-medium">{resident.broker_email}</span>
+                          </div>
+                        )}
+                        {resident.broker_commission && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Broker Commission:</span>
+                            <span className="font-medium">₹{resident.broker_commission.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -347,6 +391,36 @@ export default function ResidentDetail() {
             </div>
             ) : (
               <p className="text-muted-foreground text-center py-4">No residents listed</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Vehicles */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Vehicles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {resident.vehicle_detail && resident.vehicle_detail.length > 0 ? (
+              <div className="space-y-3">
+                {resident.vehicle_detail.map((vehicle: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        <Car className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div className="font-medium">{vehicle.vehicleNumber || vehicle.vehicle_number}</div>
+                        <div className="text-sm text-muted-foreground capitalize">
+                          {vehicle.vehicleType || vehicle.vehicle_type || 'Unknown type'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No vehicles added</p>
             )}
           </CardContent>
         </Card>

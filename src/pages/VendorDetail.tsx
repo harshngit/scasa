@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Building2, Phone, Mail, DollarSign, Loader2, FileText, Download, Receipt } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { generateVendorInvoice } from '@/lib/vendor-invoice-generator';
@@ -60,6 +61,8 @@ export default function VendorDetail() {
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -154,6 +157,73 @@ export default function VendorDetail() {
       toast.error('Failed to download invoice');
     } finally {
       setDownloadingInvoiceId(null);
+    }
+  };
+
+  const handleToggleInvoiceSelection = (invoiceId: string) => {
+    setSelectedInvoices(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(invoiceId)) {
+        newSet.delete(invoiceId);
+      } else {
+        newSet.add(invoiceId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedInvoices(new Set(invoiceHistory.map(inv => inv.id)));
+    } else {
+      setSelectedInvoices(new Set());
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    if (!vendor || selectedInvoices.size === 0) {
+      toast.error('Please select at least one invoice');
+      return;
+    }
+
+    setIsBulkDownloading(true);
+    const selectedInvoiceList = invoiceHistory.filter(inv => selectedInvoices.has(inv.id));
+    const totalInvoices = selectedInvoiceList.length;
+
+    try {
+      for (let i = 0; i < selectedInvoiceList.length; i++) {
+        const invoice = selectedInvoiceList[i];
+        const invoiceData = {
+          invoiceNumber: invoice.invoice_number,
+          invoiceDate: invoice.invoice_date,
+          dueDate: invoice.due_date,
+          vendor: {
+            id: vendor.id,
+            vendor_name: vendor.vendor_name,
+            email: vendor.email,
+            phone_number: vendor.phone_number,
+            work_details: vendor.work_details
+          },
+          items: invoice.items,
+          totalAmount: invoice.total_amount,
+          notes: invoice.notes || undefined
+        };
+
+        generateVendorInvoice(invoiceData);
+        
+        // Add a small delay between downloads to avoid browser blocking
+        if (i < selectedInvoiceList.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      toast.success(`Successfully downloaded ${totalInvoices} invoice(s)!`);
+      setSelectedInvoices(new Set());
+    } catch (error: any) {
+      console.error('Error downloading invoices:', error);
+      toast.error('Failed to download some invoices');
+    } finally {
+      setIsBulkDownloading(false);
     }
   };
 
@@ -302,69 +372,114 @@ export default function VendorDetail() {
                     No invoices found. Create an invoice to get started.
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice Number</TableHead>
-                        <TableHead>Invoice Date</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Total Amount</TableHead>
-                        <TableHead>Items</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoiceHistory.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                          <TableCell>
-                            {new Date(invoice.invoice_date).toLocaleDateString('en-IN', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(invoice.due_date).toLocaleDateString('en-IN', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">
-                              ₹{Number(invoice.total_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-muted-foreground">
-                              {invoice.items?.length || 0} item(s)
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(invoice)}
-                              disabled={downloadingInvoiceId === invoice.id}
-                            >
-                              {downloadingInvoiceId === invoice.id ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Downloading...
-                                </>
-                              ) : (
-                                <>
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Download
-                                </>
-                              )}
-                            </Button>
-                          </TableCell>
+                  <div className="space-y-4">
+                    {/* Bulk Actions */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selectedInvoices.size === invoiceHistory.length && invoiceHistory.length > 0}
+                            onCheckedChange={handleSelectAll}
+                            disabled={isBulkDownloading}
+                          />
+                          <Label className="text-sm font-medium">
+                            Select All ({selectedInvoices.size} selected)
+                          </Label>
+                        </div>
+                      </div>
+                      {selectedInvoices.size > 0 && (
+                        <Button
+                          onClick={handleBulkDownload}
+                          disabled={isBulkDownloading}
+                          className="bg-[#8c52ff] hover:bg-[#7a45e6] text-white"
+                        >
+                          {isBulkDownloading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Downloading {selectedInvoices.size} invoice(s)...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4 mr-2" />
+                              Download Selected ({selectedInvoices.size})
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Invoice Number</TableHead>
+                          <TableHead>Invoice Date</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Total Amount</TableHead>
+                          <TableHead>Items</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {invoiceHistory.map((invoice) => (
+                          <TableRow key={invoice.id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedInvoices.has(invoice.id)}
+                                onCheckedChange={() => handleToggleInvoiceSelection(invoice.id)}
+                                disabled={isBulkDownloading}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                            <TableCell>
+                              {new Date(invoice.invoice_date).toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(invoice.due_date).toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">
+                                ₹{Number(invoice.total_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-muted-foreground">
+                                {invoice.items?.length || 0} item(s)
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownloadInvoice(invoice)}
+                                disabled={downloadingInvoiceId === invoice.id || isBulkDownloading}
+                              >
+                                {downloadingInvoiceId === invoice.id ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Downloading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download
+                                  </>
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </TabsContent>
 

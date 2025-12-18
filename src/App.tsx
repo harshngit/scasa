@@ -31,6 +31,10 @@ import VendorDetail from './pages/VendorDetail';
 import CreateVendorInvoice from './pages/CreateVendorInvoice';
 import UsersList from './pages/UsersList';
 import CreateUser from './pages/CreateUser';
+import Helpers from './pages/Helpers';
+import CreateHelper from './pages/CreateHelper';
+import HelperDetail from './pages/HelperDetail';
+import EditHelper from './pages/EditHelper';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
@@ -148,6 +152,26 @@ const App = () => (
                 <StaffRoute>
                 <CreateVendorInvoice />
                 </StaffRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/helpers" element={
+              <ProtectedRoute>
+                <Helpers />
+              </ProtectedRoute>
+            } />
+            <Route path="/helpers/create" element={
+              <ProtectedRoute>
+                <CreateHelper />
+              </ProtectedRoute>
+            } />
+            <Route path="/helpers/:id" element={
+              <ProtectedRoute>
+                <HelperDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/helpers/:id/edit" element={
+              <ProtectedRoute>
+                <EditHelper />
               </ProtectedRoute>
             } />
             <Route path="/users" element={
