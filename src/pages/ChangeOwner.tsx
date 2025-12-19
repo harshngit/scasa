@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Plus, X, Upload, ArrowLeft, Users, FileText, Home, Calendar, User, Phone, Mail, Loader2, Car } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ResidentLiving {
   id: string;
@@ -30,11 +30,44 @@ interface Document {
   name: string;
   type: string;
   file?: File;
+  url?: string;
 }
 
-export default function CreateResident() {
+interface ResidentData {
+  id: string;
+  owner_name: string;
+  flat_number: string;
+  residency_type: 'owner-living' | 'rented';
+  phone_number: string;
+  email: string | null;
+  rent_agreement_url: string | null;
+  current_renter_name: string | null;
+  current_renter_phone: string | null;
+  current_renter_email: string | null;
+  old_renter_name: string | null;
+  old_renter_phone: string | null;
+  old_renter_email: string | null;
+  rent_start_date: string | null;
+  rent_end_date: string | null;
+  monthly_rent: number | null;
+  broker_name: string | null;
+  broker_phone: string | null;
+  broker_email: string | null;
+  broker_company: string | null;
+  broker_commission: number | null;
+  residents_living: any[];
+  vehicle_detail: any[];
+  documents: any[];
+  owner_history: any[];
+}
+
+export default function ChangeOwner() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentResident, setCurrentResident] = useState<ResidentData | null>(null);
+  
   const [formData, setFormData] = useState({
     ownerName: '',
     flatNumber: '',
@@ -74,6 +107,95 @@ export default function CreateResident() {
     vehicleType: ''
   });
 
+  // Fetch current resident data
+  useEffect(() => {
+    if (id) {
+      fetchResident(id);
+    }
+  }, [id]);
+
+  const fetchResident = async (residentId: string) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('residents')
+        .select('*')
+        .eq('id', residentId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching resident:', error);
+        toast.error('Failed to load resident details');
+        navigate('/residents');
+        return;
+      }
+
+      setCurrentResident(data);
+      
+      // Pre-fill form with current data
+      setFormData({
+        ownerName: data.owner_name || '',
+        flatNumber: data.flat_number || '',
+        residencyType: data.residency_type || '',
+        phoneNumber: data.phone_number || '',
+        email: data.email || '',
+        rentAgreement: null,
+        currentRenterName: data.current_renter_name || '',
+        currentRenterPhone: data.current_renter_phone || '',
+        currentRenterEmail: data.current_renter_email || '',
+        oldRenterName: data.old_renter_name || '',
+        oldRenterPhone: data.old_renter_phone || '',
+        oldRenterEmail: data.old_renter_email || '',
+        rentStartDate: data.rent_start_date || '',
+        rentEndDate: data.rent_end_date || '',
+        monthlyRent: data.monthly_rent?.toString() || '',
+        brokerName: data.broker_name || '',
+        brokerPhone: data.broker_phone || '',
+        brokerEmail: data.broker_email || '',
+        brokerCompany: data.broker_company || '',
+        brokerCommission: data.broker_commission?.toString() || '',
+      });
+
+      // Pre-fill residents living
+      if (data.residents_living && Array.isArray(data.residents_living)) {
+        const residents = data.residents_living.map((r: any, idx: number) => ({
+          id: idx.toString(),
+          name: r.name || '',
+          phoneNumber: r.phoneNumber || r.phone || '',
+          dateJoined: r.dateJoined || r.date_joined || ''
+        }));
+        setResidentsList(residents);
+      }
+
+      // Pre-fill vehicles
+      if (data.vehicle_detail && Array.isArray(data.vehicle_detail)) {
+        const vehicles = data.vehicle_detail.map((v: any, idx: number) => ({
+          id: idx.toString(),
+          vehicleNumber: v.vehicleNumber || v.vehicle_number || '',
+          vehicleType: v.vehicleType || v.vehicle_type || ''
+        }));
+        setVehicles(vehicles);
+      }
+
+      // Pre-fill documents
+      if (data.documents && Array.isArray(data.documents)) {
+        const docs = data.documents.map((d: any, idx: number) => ({
+          id: idx.toString(),
+          name: d.name || '',
+          type: d.type || '',
+          url: d.url || ''
+        }));
+        setDocuments(docs);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to load resident details');
+      navigate('/residents');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -83,7 +205,6 @@ export default function CreateResident() {
   };
 
   const addResident = () => {
-    // Validate required fields
     if (!newResident.name.trim()) {
       toast.error('Please enter resident name');
       return;
@@ -97,7 +218,6 @@ export default function CreateResident() {
       return;
     }
 
-    // Add resident to the list
     const resident: ResidentLiving = {
       id: Date.now().toString(),
       name: newResident.name.trim(),
@@ -172,7 +292,6 @@ export default function CreateResident() {
         throw uploadError;
       }
 
-      // Get public URL
       const { data } = supabase.storage
         .from('residents-documents')
         .getPublicUrl(filePath);
@@ -187,7 +306,6 @@ export default function CreateResident() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
     if (!formData.ownerName.trim()) {
       toast.error('Please enter owner name');
       return;
@@ -205,7 +323,6 @@ export default function CreateResident() {
       return;
     }
 
-    // Validate rental information if rented (make rent agreement optional for now)
     if (formData.residencyType === 'rented') {
       if (!formData.currentRenterName?.trim()) {
         toast.error('Please enter current renter name');
@@ -218,24 +335,23 @@ export default function CreateResident() {
     }
 
     setIsSubmitting(true);
-
-    // Dismiss any existing toasts
     toast.dismiss();
 
     try {
-      console.log('Form submission started...');
-      // Build residents_living array based on residency type
+      if (!currentResident) {
+        throw new Error('Current resident data not found');
+      }
+
+      // Build residents_living array
       let residentsLivingArray: any[] = [];
 
       if (formData.residencyType === 'owner-living') {
-        // For owner-living: use the residentsList
         residentsLivingArray = residentsList.map(resident => ({
           name: resident.name,
           phoneNumber: resident.phoneNumber,
           dateJoined: resident.dateJoined
         }));
       } else if (formData.residencyType === 'rented') {
-        // For rented: include current renter (if filled) + residentsList
         if (formData.currentRenterName && formData.currentRenterPhone) {
           residentsLivingArray.push({
             name: formData.currentRenterName,
@@ -246,7 +362,6 @@ export default function CreateResident() {
           });
         }
 
-        // Add additional residents from the list
         residentsList.forEach(resident => {
           residentsLivingArray.push({
             name: resident.name,
@@ -257,11 +372,10 @@ export default function CreateResident() {
         });
       }
 
-      // Upload rent agreement file if exists
-      let rentAgreementUrl: string | null = null;
-      let rentAgreementToastId: string | number | undefined;
+      // Upload rent agreement if new file is provided
+      let rentAgreementUrl: string | null = currentResident.rent_agreement_url;
       if (formData.rentAgreement) {
-        rentAgreementToastId = toast.loading('Uploading rent agreement...');
+        const rentAgreementToastId = toast.loading('Uploading rent agreement...');
         rentAgreementUrl = await uploadFile(
           formData.rentAgreement,
           'rent-agreements',
@@ -274,12 +388,20 @@ export default function CreateResident() {
         toast.success('Rent agreement uploaded');
       }
 
-      // Upload document files
+      // Upload new document files
       const documentsWithUrls: any[] = [];
+      const existingDocuments = documents.filter(doc => doc.url && !doc.file);
+      documentsWithUrls.push(...existingDocuments.map(doc => ({
+        name: doc.name,
+        type: doc.type,
+        url: doc.url
+      })));
+
       let documentsToastId: string | number | undefined;
-      if (documents.length > 0) {
+      const newDocuments = documents.filter(doc => doc.file);
+      if (newDocuments.length > 0) {
         documentsToastId = toast.loading('Uploading documents...');
-        for (const doc of documents) {
+        for (const doc of newDocuments) {
           if (doc.file && doc.name && doc.type) {
             const fileUrl = await uploadFile(
               doc.file,
@@ -296,8 +418,8 @@ export default function CreateResident() {
           }
         }
         toast.dismiss(documentsToastId);
-        if (documentsWithUrls.length > 0) {
-          toast.success(`${documentsWithUrls.length} document(s) uploaded`);
+        if (newDocuments.length > 0) {
+          toast.success(`${newDocuments.length} document(s) uploaded`);
         }
       }
 
@@ -307,7 +429,38 @@ export default function CreateResident() {
         vehicleType: vehicle.vehicleType,
       }));
 
-      // Prepare data for database
+      // Prepare old owner data for history
+      const oldOwnerData = {
+        owner_name: currentResident.owner_name,
+        phone_number: currentResident.phone_number,
+        email: currentResident.email,
+        residency_type: currentResident.residency_type,
+        residents_living: currentResident.residents_living || [],
+        vehicle_detail: currentResident.vehicle_detail || [],
+        documents: currentResident.documents || [],
+        rent_agreement_url: currentResident.rent_agreement_url,
+        current_renter_name: currentResident.current_renter_name,
+        current_renter_phone: currentResident.current_renter_phone,
+        current_renter_email: currentResident.current_renter_email,
+        old_renter_name: currentResident.old_renter_name,
+        old_renter_phone: currentResident.old_renter_phone,
+        old_renter_email: currentResident.old_renter_email,
+        rent_start_date: currentResident.rent_start_date,
+        rent_end_date: currentResident.rent_end_date,
+        monthly_rent: currentResident.monthly_rent,
+        broker_name: currentResident.broker_name,
+        broker_phone: currentResident.broker_phone,
+        broker_email: currentResident.broker_email,
+        broker_company: currentResident.broker_company,
+        broker_commission: currentResident.broker_commission,
+        changed_at: new Date().toISOString()
+      };
+
+      // Get existing owner_history or initialize as empty array
+      const existingHistory = currentResident.owner_history || [];
+      const updatedHistory = [...existingHistory, oldOwnerData];
+
+      // Prepare new owner data
       const residentData: any = {
         owner_name: formData.ownerName,
         flat_number: formData.flatNumber,
@@ -316,7 +469,8 @@ export default function CreateResident() {
         email: formData.email || null,
         residents_living: residentsLivingArray,
         vehicle_detail: vehicleDetailArray,
-        documents: documentsWithUrls
+        documents: documentsWithUrls,
+        owner_history: updatedHistory
       };
 
       // Add rental information if residency type is rented
@@ -331,88 +485,118 @@ export default function CreateResident() {
         residentData.rent_start_date = formData.rentStartDate || null;
         residentData.rent_end_date = formData.rentEndDate || null;
         residentData.monthly_rent = formData.monthlyRent ? parseFloat(formData.monthlyRent) : null;
-        // Broker details
         residentData.broker_name = formData.brokerName || null;
         residentData.broker_phone = formData.brokerPhone || null;
         residentData.broker_email = formData.brokerEmail || null;
         residentData.broker_company = formData.brokerCompany || null;
         residentData.broker_commission = formData.brokerCommission ? parseFloat(formData.brokerCommission) : null;
+      } else {
+        // Clear rental fields if changing to owner-living
+        residentData.rent_agreement_url = null;
+        residentData.current_renter_name = null;
+        residentData.current_renter_phone = null;
+        residentData.current_renter_email = null;
+        residentData.old_renter_name = null;
+        residentData.old_renter_phone = null;
+        residentData.old_renter_email = null;
+        residentData.rent_start_date = null;
+        residentData.rent_end_date = null;
+        residentData.monthly_rent = null;
+        residentData.broker_name = null;
+        residentData.broker_phone = null;
+        residentData.broker_email = null;
+        residentData.broker_company = null;
+        residentData.broker_commission = null;
       }
 
-      // Insert into database
-      console.log('Inserting data into database:', residentData);
-      const savingToastId = toast.loading('Saving resident data...');
+      // Update the resident record
+      const savingToastId = toast.loading('Updating owner information...');
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('residents')
-        .insert([residentData])
-        .select();
+        .update(residentData)
+        .eq('id', currentResident.id);
 
-      // Dismiss loading toast before showing result
       toast.dismiss(savingToastId);
 
       if (error) {
-        console.error('Error saving resident:', error);
-        toast.error(`Failed to save: ${error.message}`);
+        console.error('Error updating resident:', error);
+        toast.error(`Failed to update: ${error.message}`);
         throw error;
       }
 
-      console.log('Resident created successfully:', data);
-      toast.success('Resident created successfully!');
-
-      // Navigate back to residents page after successful creation
+      toast.success('Owner changed successfully!');
       setTimeout(() => {
-        navigate('/residents');
+        navigate(`/residents/${currentResident.id}`);
       }, 1500);
     } catch (error: any) {
-      console.error('Error creating resident:', error);
-      // Dismiss all loading toasts on error
+      console.error('Error changing owner:', error);
       toast.dismiss();
-      toast.error(error.message || 'Failed to create resident. Please try again.');
+      toast.error(error.message || 'Failed to change owner. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Loading resident details...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!currentResident) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold">Resident Not Found</h3>
+            <p className="text-muted-foreground">The requested resident could not be found.</p>
+            <Button onClick={() => navigate('/residents')} className="mt-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Residents
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="space-y-6 pb-8">
         {/* Header Section */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 p-8 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-500 group">
-          {/* Animated background gradients */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
           
           <div className="relative z-10 flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/residents')}>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/residents/${currentResident.id}`)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Residents
+              Back to Resident
             </Button>
             <div>
               <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Create New Resident
+                Change Owner
               </h1>
               <p className="text-muted-foreground">
-                Add a new resident with complete details and documentation
+                Update owner information for Flat {currentResident.flat_number}
               </p>
             </div>
           </div>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            console.log('Form submitted');
-            handleSubmit(e);
-          }}
-          className="space-y-6"
-          noValidate
-        >
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {/* Basic Information */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
             <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <User className="h-5 w-5 text-[#8c52ff]" />
-                Basic Information
+                New Owner Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
@@ -449,9 +633,7 @@ export default function CreateResident() {
                   </Label>
                   <Select
                     value={formData.residencyType}
-                    onValueChange={(value) => {
-                      handleInputChange('residencyType', value);
-                    }}
+                    onValueChange={(value) => handleInputChange('residencyType', value)}
                     required
                   >
                     <SelectTrigger id="residencyType" className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20">
@@ -504,13 +686,18 @@ export default function CreateResident() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rentAgreement">Rent Agreement *</Label>
+                  <Label htmlFor="rentAgreement">Rent Agreement</Label>
                   <Input
                     id="rentAgreement"
                     type="file"
                     accept=".pdf,.doc,.docx"
                     onChange={(e) => handleFileUpload('rentAgreement', e.target.files?.[0] || null)}
                   />
+                  {currentResident.rent_agreement_url && (
+                    <p className="text-sm text-muted-foreground">
+                      Current: <a href={currentResident.rent_agreement_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current agreement</a>
+                    </p>
+                  )}
                 </div>
 
                 <Separator />
@@ -778,24 +965,24 @@ export default function CreateResident() {
                                   month: 'short', 
                                   day: 'numeric' 
                                 })}</span>
-                      </div>
+                              </div>
                             </td>
                             <td className="py-4 px-4 text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeResident(resident.id)}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeResident(resident.id)}
                                 className="h-9 w-9 p-0 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300 dark:hover:border-red-700 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -964,6 +1151,11 @@ export default function CreateResident() {
                         }
                       }}
                     />
+                    {document.url && !document.file && (
+                      <p className="text-xs text-muted-foreground">
+                        Current: <a href={document.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View</a>
+                      </p>
+                    )}
                   </div>
                   <Button
                     type="button"
@@ -988,7 +1180,7 @@ export default function CreateResident() {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => navigate('/residents')}
+              onClick={() => navigate(`/residents/${currentResident.id}`)}
               className="h-12 px-6 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Cancel
@@ -1001,12 +1193,12 @@ export default function CreateResident() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Creating...
+                  Updating...
                 </>
               ) : (
                 <>
-                  <Plus className="h-5 w-5 mr-2" />
-                  Create Resident
+                  <User className="h-5 w-5 mr-2" />
+                  Change Owner
                 </>
               )}
             </Button>
@@ -1016,3 +1208,4 @@ export default function CreateResident() {
     </DashboardLayout>
   );
 }
+

@@ -30,6 +30,19 @@ export const sendNoticeEmail = async (
   notice: NoticeEmailData
 ): Promise<boolean> => {
   try {
+    // Validate recipient email
+    if (!recipientEmail || recipientEmail.trim() === '') {
+      console.error('Recipient email is empty');
+      return false;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      console.error(`Invalid email format: ${recipientEmail}`);
+      return false;
+    }
+
     if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
       console.error('EmailJS configuration is missing. Please set environment variables.');
       return false;
@@ -58,9 +71,12 @@ export const sendNoticeEmail = async (
     };
 
     // Prepare email template parameters
+    // Note: The template uses {{email}} for the recipient, so we must include 'email' parameter
     const templateParams = {
-      to_email: recipientEmail,
-      to_name: recipientName,
+      email: recipientEmail.trim(), // This matches {{email}} in the template's "To Email" field
+      to_email: recipientEmail.trim(), // Also include for backward compatibility
+      reply_to: recipientEmail.trim(), // Also set as reply_to for compatibility
+      to_name: recipientName || 'Resident',
       notice_title: notice.title,
       notice_content: notice.content,
       notice_date: noticeDate,
@@ -72,20 +88,31 @@ export const sendNoticeEmail = async (
       society_phone: '022 35187410',
     };
 
+    console.log('Sending email to:', recipientEmail);
+    console.log('Template params:', { ...templateParams, to_email: '***' }); // Log without exposing email
+
     // Send email via EmailJS
     const response = await emailjs.send(
       EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ID,
-      templateParams
+      templateParams,
+      EMAILJS_PUBLIC_KEY
     );
 
     if (response.status === 200) {
+      console.log('Email sent successfully to:', recipientEmail);
       return true;
     }
 
+    console.error('EmailJS returned non-200 status:', response.status);
     return false;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending email via EmailJS:', error);
+    console.error('Error details:', {
+      message: error?.text || error?.message,
+      status: error?.status,
+      recipient: recipientEmail
+    });
     return false;
   }
 };
@@ -123,9 +150,10 @@ export const sendNoticeToAllResidents = async (
 
     // Send email to each resident
     for (const resident of residents) {
-      if (resident.email) {
+      if (resident.email && resident.email.trim() !== '') {
+        console.log(`Processing email for resident: ${resident.owner_name} (${resident.email})`);
         const emailSent = await sendNoticeEmail(
-          resident.email,
+          resident.email.trim(),
           resident.owner_name || 'Resident',
           notice
         );
@@ -134,10 +162,13 @@ export const sendNoticeToAllResidents = async (
           successCount++;
         } else {
           failedCount++;
+          console.error(`Failed to send email to: ${resident.email}`);
         }
 
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        console.warn(`Skipping resident ${resident.owner_name} - no valid email address`);
       }
     }
 

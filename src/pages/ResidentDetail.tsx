@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Edit, Phone, Mail, Calendar, Users, FileText, Download, Loader2, Trash2, Car } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, Calendar, Users, FileText, Download, Loader2, Trash2, Car, UserCog } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -45,6 +45,7 @@ interface ResidentData {
   residents_living: any[];
   vehicle_detail?: any[];
   documents: any[];
+  owner_history?: any[];
   created_at: string;
   updated_at: string;
 }
@@ -162,6 +163,10 @@ export default function ResidentDetail() {
             <Button variant="destructive" onClick={handleDeleteClick}>
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
+            </Button>
+            <Button variant="outline" onClick={() => navigate(`/residents/${resident.id}/change-owner`)}>
+              <UserCog className="h-4 w-4 mr-2" />
+              Change Owner
             </Button>
             <Button onClick={() => navigate(`/residents/${resident.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />
@@ -461,6 +466,58 @@ export default function ResidentDetail() {
           </CardContent>
         </Card>
 
+        {/* Owner History */}
+        {resident.owner_history && resident.owner_history.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Previous Owners History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {resident.owner_history.map((previousOwner: any, index: number) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-lg">{previousOwner.owner_name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Changed on: {previousOwner.changed_at ? new Date(previousOwner.changed_at).toLocaleDateString() : 'Unknown date'}
+                        </p>
+                      </div>
+                      <Badge variant="outline">
+                        {previousOwner.residency_type === 'owner-living' ? 'Owner Living' : 'Rented'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Phone: </span>
+                        <span>{previousOwner.phone_number}</span>
+                      </div>
+                      {previousOwner.email && (
+                        <div>
+                          <span className="text-muted-foreground">Email: </span>
+                          <span>{previousOwner.email}</span>
+                        </div>
+                      )}
+                      {previousOwner.monthly_rent && (
+                        <div>
+                          <span className="text-muted-foreground">Monthly Rent: </span>
+                          <span>₹{previousOwner.monthly_rent.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {previousOwner.current_renter_name && (
+                        <div>
+                          <span className="text-muted-foreground">Renter: </span>
+                          <span>{previousOwner.current_renter_name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         <div className="flex justify-end space-x-4">
           <Button variant="outline" onClick={() => navigate('/residents')}>
@@ -470,6 +527,10 @@ export default function ResidentDetail() {
           <Button variant="destructive" onClick={handleDeleteClick}>
             <Trash2 className="h-4 w-4 mr-2" />
             Delete Resident
+          </Button>
+          <Button variant="outline" onClick={() => navigate(`/residents/${resident.id}/change-owner`)}>
+            <UserCog className="h-4 w-4 mr-2" />
+            Change Owner
           </Button>
           <Button onClick={() => navigate(`/residents/${resident.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />

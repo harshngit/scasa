@@ -1,0 +1,295 @@
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, AlertCircle, Loader2, User, Phone, Mail, Building2 } from 'lucide-react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+
+export default function CreateComplaint() {
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    complainerName: '',
+    phoneNumber: '',
+    email: '',
+    flatNumber: '',
+    wing: '',
+    complaintText: '',
+    complaintDate: new Date().toISOString().split('T')[0],
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.complainerName.trim()) {
+      toast.error('Please enter complainer name');
+      return false;
+    }
+    if (!formData.phoneNumber.trim()) {
+      toast.error('Please enter phone number');
+      return false;
+    }
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      toast.error('Please enter a valid email address');
+      return false;
+    }
+    if (!formData.flatNumber.trim()) {
+      toast.error('Please enter flat number');
+      return false;
+    }
+    if (!formData.complaintText.trim()) {
+      toast.error('Please enter complaint text');
+      return false;
+    }
+    if (!formData.complaintDate) {
+      toast.error('Please select complaint date');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    const loadingToast = toast.loading('Creating complaint...');
+
+    try {
+      const complaintData: any = {
+        complainer_name: formData.complainerName.trim(),
+        phone_number: formData.phoneNumber.trim(),
+        email: formData.email.trim() || null,
+        flat_number: formData.flatNumber.trim(),
+        wing: formData.wing.trim() || null,
+        complaint_text: formData.complaintText.trim(),
+        complaint_date: formData.complaintDate,
+      };
+
+      const { data, error } = await supabase
+        .from('complaints')
+        .insert([complaintData])
+        .select()
+        .single();
+
+      toast.dismiss(loadingToast);
+
+      if (error) {
+        console.error('Error creating complaint:', error);
+        toast.error(`Failed to create complaint: ${error.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast.success('Complaint created successfully!');
+
+      // Navigate back to complaints page after successful creation
+      setTimeout(() => {
+        navigate('/complaints');
+      }, 1000);
+    } catch (error: any) {
+      console.error('Error creating complaint:', error);
+      toast.dismiss(loadingToast);
+      toast.error(error.message || 'Failed to create complaint. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 p-8 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-500 group">
+          {/* Animated background gradients */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+
+          <div className="relative z-10 flex items-center space-x-4">
+            <Button variant="outline" size="sm" onClick={() => navigate('/complaints')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Complaints
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Create New Complaint
+              </h1>
+              <p className="text-muted-foreground">
+                Add a new complaint with complete details
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-[#8c52ff]" />
+                <span>Complaint Information</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="complainerName" className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-400" />
+                    Complainer Name *
+                  </Label>
+                  <Input
+                    id="complainerName"
+                    value={formData.complainerName}
+                    onChange={(e) => handleInputChange('complainerName', e.target.value)}
+                    placeholder="Enter complainer name"
+                    required
+                    disabled={isSubmitting}
+                    className="border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber" className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    Phone Number *
+                  </Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                    placeholder="Enter phone number"
+                    required
+                    disabled={isSubmitting}
+                    className="border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    Email Id
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="Enter email address"
+                    disabled={isSubmitting}
+                    className="border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="complaintDate" className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-gray-400" />
+                    Complaint Date *
+                  </Label>
+                  <Input
+                    id="complaintDate"
+                    type="date"
+                    value={formData.complaintDate}
+                    onChange={(e) => handleInputChange('complaintDate', e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                    className="border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="flatNumber" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-gray-400" />
+                    Flat Number *
+                  </Label>
+                  <Input
+                    id="flatNumber"
+                    value={formData.flatNumber}
+                    onChange={(e) => handleInputChange('flatNumber', e.target.value)}
+                    placeholder="Enter flat number"
+                    required
+                    disabled={isSubmitting}
+                    className="border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="wing" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-gray-400" />
+                    Wing
+                  </Label>
+                  <Input
+                    id="wing"
+                    value={formData.wing}
+                    onChange={(e) => handleInputChange('wing', e.target.value)}
+                    placeholder="Enter wing (optional)"
+                    disabled={isSubmitting}
+                    className="border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="complaintText" className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-gray-400" />
+                  Complaint Text *
+                </Label>
+                <Textarea
+                  id="complaintText"
+                  value={formData.complaintText}
+                  onChange={(e) => handleInputChange('complaintText', e.target.value)}
+                  placeholder="Enter complaint details..."
+                  required
+                  disabled={isSubmitting}
+                  rows={6}
+                  className="border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20 resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Provide detailed information about the complaint
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/complaints')}
+              disabled={isSubmitting}
+              className="border-gray-200 hover:bg-gray-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-gradient-to-r from-[#8c52ff] to-purple-600 hover:from-[#9d62ff] hover:to-purple-700 text-white shadow-lg shadow-[#8c52ff]/30"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Complaint'
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </DashboardLayout>
+  );
+}
+

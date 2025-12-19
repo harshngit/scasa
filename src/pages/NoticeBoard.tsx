@@ -248,20 +248,20 @@ export default function NoticeBoard() {
     try {
       const { error } = await supabase
         .from('notices')
-        .update({ is_archived: true })
+        .delete()
         .eq('id', noticeId);
 
       if (error) {
-        console.error('Error archiving notice:', error);
-        toast.error('Failed to archive notice');
+        console.error('Error deleting notice:', error);
+        toast.error('Failed to delete notice');
         return;
       }
 
-      toast.success('Notice archived successfully');
+      toast.success('Notice deleted successfully');
       fetchNotices();
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Failed to archive notice');
+      toast.error('Failed to delete notice');
     }
   };
 

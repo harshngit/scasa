@@ -267,23 +267,32 @@ export default function CreateVendorInvoice() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/vendors')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Vendors
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Create Vendor Invoice</h1>
-              <p className="text-muted-foreground">
-                Generate a new invoice for a vendor
-              </p>
+        {/* Header Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 p-8 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-500 group">
+          {/* Animated background gradients */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+          
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm" onClick={() => navigate('/vendors')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Vendors
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Create Vendor Invoice
+                </h1>
+                <p className="text-muted-foreground">
+                  Generate a new invoice for a vendor
+                </p>
+              </div>
             </div>
-          </div>
-          <Button onClick={handlePreview} disabled={!selectedVendor || totalAmount <= 0} className="bg-[#8c52ff] hover:bg-[#7a45e6] text-white">
-            <Eye className="mr-2 h-4 w-4" />
-            Preview Invoice
+            <Button onClick={handlePreview} disabled={!selectedVendor || totalAmount <= 0} className="bg-gradient-to-r from-[#8c52ff] to-purple-600 hover:from-[#9d62ff] hover:to-purple-700 text-white shadow-lg shadow-[#8c52ff]/30">
+              <Eye className="mr-2 h-4 w-4" />
+              Preview Invoice
             </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

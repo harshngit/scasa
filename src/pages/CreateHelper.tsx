@@ -296,16 +296,25 @@ export default function CreateHelper() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={() => navigate('/helpers')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Helpers
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Create New Helper</h1>
-            <p className="text-muted-foreground">
-              Add a new helper with complete details
-            </p>
+        {/* Header Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 p-8 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-500 group">
+          {/* Animated background gradients */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+          
+          <div className="relative z-10 flex items-center space-x-4">
+            <Button variant="outline" size="sm" onClick={() => navigate('/helpers')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Helpers
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Create New Helper
+              </h1>
+              <p className="text-muted-foreground">
+                Add a new helper with complete details
+              </p>
+            </div>
           </div>
         </div>
 

@@ -37,49 +37,136 @@ This application uses EmailJS to send email notifications to residents when noti
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #8c52ff 0%, #a855f7 50%, #ec4899 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">{{society_name}}</h1>
-    <p style="color: white; margin: 5px 0 0 0; font-size: 14px;">CO-OP HOUSING SOCIETY LTD.</p>
+<body style="font-family: 'Times New Roman', serif; line-height: 1.8; color: #000; max-width: 800px; margin: 0 auto; padding: 40px 20px; background-color: #f5f5f5;">
+  
+  <!-- Letterhead -->
+  <div style="background: #ffffff; border: 2px solid #8c52ff; padding: 0; margin-bottom: 30px;">
+    <!-- Letterhead Header -->
+    <div style="background: linear-gradient(135deg, #8c52ff 0%, #a855f7 50%, #ec4899 100%); padding: 25px 30px; text-align: center; border-bottom: 3px solid #6d3fc7;">
+      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
+        {{society_name}}
+      </h1>
+      <p style="color: #ffffff; margin: 8px 0 0 0; font-size: 16px; font-weight: 500; letter-spacing: 0.5px;">
+        CO-OP HOUSING SOCIETY LTD.
+      </p>
+    </div>
+    
+    <!-- Letterhead Address Section -->
+    <div style="padding: 20px 30px; background: #ffffff; border-bottom: 1px solid #e5e7eb;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="text-align: left; padding: 5px 0; color: #374151; font-size: 13px;">
+            <strong>Address:</strong> {{society_address}}
+          </td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 5px 0; color: #374151; font-size: 13px;">
+            <strong>Phone:</strong> {{society_phone}}
+          </td>
+        </tr>
+      </table>
+    </div>
   </div>
   
-  <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
-    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <h2 style="color: #1f2937; margin-top: 0; font-size: 22px; border-bottom: 2px solid #8c52ff; padding-bottom: 10px;">
+  <!-- Letter Content -->
+  <div style="background: #ffffff; border: 2px solid #8c52ff; padding: 40px 50px; min-height: 400px;">
+    
+    <!-- Date and Reference -->
+    <div style="margin-bottom: 30px; text-align: right;">
+      <p style="margin: 0; color: #374151; font-size: 14px;">
+        <strong>Date:</strong> {{notice_date}}
+      </p>
+    </div>
+    
+    <!-- Notice Title -->
+    <div style="margin-bottom: 25px;">
+      <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 22px; font-weight: bold; text-align: center; border-bottom: 2px solid #8c52ff; padding-bottom: 10px;">
         {{notice_title}}
       </h2>
       
-      <div style="margin: 15px 0;">
-        <span style="background: #ef4444; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+      <!-- Priority and Category Badges -->
+      <div style="text-align: center; margin: 15px 0;">
+        <span style="background: #ef4444; color: white; padding: 6px 15px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 10px; display: inline-block;">
           {{notice_priority}}
         </span>
-        <span style="background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-left: 10px;">
+        <span style="background: #6b7280; color: white; padding: 6px 15px; border-radius: 4px; font-size: 12px; font-weight: 500; display: inline-block;">
           {{notice_category}}
         </span>
       </div>
-      
-      <div style="color: #6b7280; font-size: 14px; margin: 15px 0;">
-        <p style="margin: 5px 0;"><strong>Date:</strong> {{notice_date}}</p>
-        <p style="margin: 5px 0;"><strong>Published by:</strong> {{notice_author}}</p>
-      </div>
-      
-      <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #8c52ff;">
-        <p style="margin: 0; color: #374151; white-space: pre-wrap;">{{notice_content}}</p>
-      </div>
     </div>
     
-    <div style="text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-      <p style="margin: 5px 0;">This is an automated notification from</p>
-      <p style="margin: 5px 0;"><strong>{{society_name}}</strong></p>
-      <p style="margin: 5px 0;">{{society_address}}</p>
-      <p style="margin: 5px 0;">Tel: {{society_phone}}</p>
+    <!-- Salutation -->
+    <div style="margin-bottom: 20px;">
+      <p style="margin: 0; color: #374151; font-size: 14px;">
+        <strong>To,</strong><br>
+        All Members / Residents
+      </p>
     </div>
+    
+    <!-- Subject Line -->
+    <div style="margin-bottom: 20px;">
+      <p style="margin: 0; color: #374151; font-size: 14px;">
+        <strong>Subject:</strong> {{notice_title}}
+      </p>
+    </div>
+    
+    <!-- Notice Dated -->
+    <div style="margin-bottom: 20px;">
+      <p style="margin: 0; color: #374151; font-size: 14px; font-weight: 500;">
+        <strong>Notice (Dated: {{notice_date}})</strong>
+      </p>
+    </div>
+    
+    <!-- Introductory Paragraph -->
+    <div style="margin-bottom: 25px; text-align: justify;">
+      <p style="margin: 0 0 15px 0; color: #1f2937; font-size: 14px; line-height: 1.8;">
+        This is to inform all society members that the following notice is being issued for your kind information and necessary action. Members are requested to read the notice carefully and comply with the instructions mentioned herein.
+      </p>
+    </div>
+    
+    <!-- Letter Body Content -->
+    <div style="margin-bottom: 30px; text-align: justify;">
+      <p style="margin: 0 0 15px 0; color: #1f2937; font-size: 14px; line-height: 1.8; white-space: pre-wrap;">
+        {{notice_content}}
+      </p>
+    </div>
+    
+    <!-- Closing -->
+    <div style="margin-top: 40px;">
+      <p style="margin: 0 0 5px 0; color: #374151; font-size: 14px;">
+        Thanking you,
+      </p>
+      <p style="margin: 15px 0 5px 0; color: #374151; font-size: 14px;">
+        <strong>{{notice_author}}</strong>
+      </p>
+      <p style="margin: 5px 0 0 0; color: #374151; font-size: 14px;">
+        {{society_name}}
+      </p>
+    </div>
+    
   </div>
+  
+  <!-- Footer -->
+  <div style="text-align: center; color: #6b7280; font-size: 11px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+    <p style="margin: 3px 0;">
+      This is an automated notification. Please do not reply to this email.
+    </p>
+    <p style="margin: 3px 0;">
+      For queries, please contact the society office at {{society_phone}}
+    </p>
+  </div>
+  
 </body>
 </html>
 ```
 
-4. Save the template and note your **Template ID**
+4. **IMPORTANT: Configure the "To Email" field**
+   - In the template editor, look for the **"To Email"** field (usually at the top of the template settings)
+   - Set it to: `{{to_email}}`
+   - This is **critical** - without this, you'll get "recipients address is empty" error
+   - The "To Email" field tells EmailJS where to send the email
+
+5. Save the template and note your **Template ID**
 
 ### 4. Get Public Key
 

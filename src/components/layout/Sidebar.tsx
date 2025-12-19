@@ -16,7 +16,9 @@ import {
   LogOut,
   HandHeart,
   UserPlus,
-  Megaphone
+  Megaphone,
+  AlertCircle,
+  FileCheck
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getCurrentUser, hasPermission } from '@/lib/auth';
@@ -33,6 +35,8 @@ const navigation: Array<{
     { name: 'Residents', href: '/residents', icon: Users, permission: 'residents' },
     { name: 'Maintenance Payments', href: '/maintenance-payments', icon: CreditCard, permission: 'maintenance_payments' },
     { name: 'Notice Board', href: '/notices', icon: Megaphone, permission: 'notices' },
+    { name: 'Complaints', href: '/complaints', icon: AlertCircle, permission: 'notices' },
+    { name: 'Permissions', href: '/permissions', icon: FileCheck, permission: 'notices' },
     // Commented out - to be implemented later
     // { name: 'Amenities', href: '/amenities', icon: Calendar, permission: 'amenities' },
     // { name: 'Finance', href: '/finance', icon: DollarSign, permission: 'finance' },

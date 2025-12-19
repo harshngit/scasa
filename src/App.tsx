@@ -35,6 +35,15 @@ import Helpers from './pages/Helpers';
 import CreateHelper from './pages/CreateHelper';
 import HelperDetail from './pages/HelperDetail';
 import EditHelper from './pages/EditHelper';
+import Complaints from './pages/Complaints';
+import CreateComplaint from './pages/CreateComplaint';
+import ComplaintDetail from './pages/ComplaintDetail';
+import EditComplaint from './pages/EditComplaint';
+import Permissions from './pages/Permissions';
+import CreatePermission from './pages/CreatePermission';
+import PermissionDetail from './pages/PermissionDetail';
+import EditPermission from './pages/EditPermission';
+import ChangeOwner from './pages/ChangeOwner';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
@@ -75,6 +84,11 @@ const App = () => (
             <Route path="/residents/:id/edit" element={
               <ProtectedRoute>
                 <EditResident />
+              </ProtectedRoute>
+            } />
+            <Route path="/residents/:id/change-owner" element={
+              <ProtectedRoute>
+                <ChangeOwner />
               </ProtectedRoute>
             } />
             <Route path="/notices" element={
@@ -172,6 +186,46 @@ const App = () => (
             <Route path="/helpers/:id/edit" element={
               <ProtectedRoute>
                 <EditHelper />
+              </ProtectedRoute>
+            } />
+            <Route path="/complaints" element={
+              <ProtectedRoute>
+                <Complaints />
+              </ProtectedRoute>
+            } />
+            <Route path="/complaints/create" element={
+              <ProtectedRoute>
+                <CreateComplaint />
+              </ProtectedRoute>
+            } />
+            <Route path="/complaints/:id" element={
+              <ProtectedRoute>
+                <ComplaintDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/complaints/:id/edit" element={
+              <ProtectedRoute>
+                <EditComplaint />
+              </ProtectedRoute>
+            } />
+            <Route path="/permissions" element={
+              <ProtectedRoute>
+                <Permissions />
+              </ProtectedRoute>
+            } />
+            <Route path="/permissions/create" element={
+              <ProtectedRoute>
+                <CreatePermission />
+              </ProtectedRoute>
+            } />
+            <Route path="/permissions/:id" element={
+              <ProtectedRoute>
+                <PermissionDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/permissions/:id/edit" element={
+              <ProtectedRoute>
+                <EditPermission />
               </ProtectedRoute>
             } />
             <Route path="/users" element={

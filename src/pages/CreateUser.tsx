@@ -139,15 +139,24 @@ export default function CreateUser() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Create New User</h1>
-            <p className="text-muted-foreground">Add a new user to the system</p>
+        {/* Header Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 p-8 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-500 group">
+          {/* Animated background gradients */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+          
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Create New User
+              </h1>
+              <p className="text-muted-foreground">Add a new user to the system</p>
+            </div>
+            <Button variant="outline" onClick={() => navigate('/users')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Users
+            </Button>
           </div>
-          <Button variant="outline" onClick={() => navigate('/users')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Users
-          </Button>
         </div>
 
         <Card>
