@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Plus, X, ArrowLeft, Loader2, Car } from 'lucide-react';
+import { Plus, X, ArrowLeft, Loader2, Car, Users, FileText, Home, Calendar, User, Phone } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ResidentLiving {
   id: string;
@@ -270,7 +271,7 @@ export default function EditResident() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.ownerName.trim()) {
       toast.error('Please enter owner name');
       return;
@@ -321,7 +322,7 @@ export default function EditResident() {
             isRenter: true
           });
         }
-        
+
         residentsList.forEach(resident => {
           residentsLivingArray.push({
             name: resident.name,
@@ -425,7 +426,7 @@ export default function EditResident() {
       }
 
       const savingToastId = toast.loading('Updating resident data...');
-      
+
       const { error } = await supabase
         .from('residents')
         .update(residentData)
@@ -440,7 +441,7 @@ export default function EditResident() {
       }
 
       toast.success('Resident updated successfully!');
-      
+
       setTimeout(() => {
         navigate(`/residents/${id}`);
       }, 1000);
@@ -466,57 +467,76 @@ export default function EditResident() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/residents/${id}`)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Details
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Edit Resident</h1>
-            <p className="text-muted-foreground">
-              Update resident information and details
-            </p>
+      <div className="space-y-6 pb-8">
+        {/* Header Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 p-8 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-500 group">
+          {/* Animated background gradients */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+
+          <div className="relative z-10 flex items-center space-x-4">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/residents/${id}`)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Details
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Edit Resident
+              </h1>
+              <p className="text-muted-foreground">
+                Update resident information and details
+              </p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Same form structure as CreateResident */}
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <User className="h-5 w-5 text-[#8c52ff]" />
+                Basic Information
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="ownerName">Owner's Name *</Label>
+                  <Label htmlFor="ownerName" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Owner's Name <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="ownerName"
                     value={formData.ownerName}
                     onChange={(e) => handleInputChange('ownerName', e.target.value)}
                     placeholder="Enter owner's full name"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="flatNumber">Flat Number *</Label>
+                  <Label htmlFor="flatNumber" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Flat Number <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="flatNumber"
                     value={formData.flatNumber}
                     onChange={(e) => handleInputChange('flatNumber', e.target.value)}
                     placeholder="e.g., A-101"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="residencyType">Residency Type *</Label>
-                  <Select 
-                    value={formData.residencyType} 
+                  <Label htmlFor="residencyType" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Residency Type <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.residencyType}
                     onValueChange={(value) => handleInputChange('residencyType', value)}
                     required
                   >
-                    <SelectTrigger id="residencyType">
+                    <SelectTrigger id="residencyType" className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20">
                       <SelectValue placeholder="Select residency type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -526,34 +546,43 @@ export default function EditResident() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number *</Label>
+                  <Label htmlFor="phoneNumber" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Phone Number <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                     placeholder="Enter phone number"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     required
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Email Address
+                  </Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder="Enter email address"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                   />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Rental Information */}
+          {/* Rental Information - Only show if residency type is rented */}
           {formData.residencyType === 'rented' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Rental Information</CardTitle>
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Home className="h-5 w-5 text-[#8c52ff]" />
+                  Rental Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -579,6 +608,7 @@ export default function EditResident() {
                         value={formData.currentRenterName}
                         onChange={(e) => handleInputChange('currentRenterName', e.target.value)}
                         placeholder="Enter renter's name"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -588,6 +618,7 @@ export default function EditResident() {
                         value={formData.currentRenterPhone}
                         onChange={(e) => handleInputChange('currentRenterPhone', e.target.value)}
                         placeholder="Enter phone number"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -598,6 +629,7 @@ export default function EditResident() {
                         value={formData.currentRenterEmail}
                         onChange={(e) => handleInputChange('currentRenterEmail', e.target.value)}
                         placeholder="Enter email address"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                   </div>
@@ -615,6 +647,7 @@ export default function EditResident() {
                         value={formData.oldRenterName}
                         onChange={(e) => handleInputChange('oldRenterName', e.target.value)}
                         placeholder="Enter previous renter's name"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -624,6 +657,7 @@ export default function EditResident() {
                         value={formData.oldRenterPhone}
                         onChange={(e) => handleInputChange('oldRenterPhone', e.target.value)}
                         placeholder="Enter phone number"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -634,6 +668,7 @@ export default function EditResident() {
                         value={formData.oldRenterEmail}
                         onChange={(e) => handleInputChange('oldRenterEmail', e.target.value)}
                         placeholder="Enter email address"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                   </div>
@@ -649,6 +684,7 @@ export default function EditResident() {
                       type="date"
                       value={formData.rentStartDate}
                       onChange={(e) => handleInputChange('rentStartDate', e.target.value)}
+                      className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     />
                   </div>
                   <div className="space-y-2">
@@ -658,6 +694,7 @@ export default function EditResident() {
                       type="date"
                       value={formData.rentEndDate}
                       onChange={(e) => handleInputChange('rentEndDate', e.target.value)}
+                      className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     />
                   </div>
                   <div className="space-y-2">
@@ -668,6 +705,7 @@ export default function EditResident() {
                       value={formData.monthlyRent}
                       onChange={(e) => handleInputChange('monthlyRent', e.target.value)}
                       placeholder="Enter monthly rent amount"
+                      className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     />
                   </div>
                 </div>
@@ -684,6 +722,7 @@ export default function EditResident() {
                         value={formData.brokerName}
                         onChange={(e) => handleInputChange('brokerName', e.target.value)}
                         placeholder="Enter broker's name"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -693,6 +732,7 @@ export default function EditResident() {
                         value={formData.brokerPhone}
                         onChange={(e) => handleInputChange('brokerPhone', e.target.value)}
                         placeholder="Enter broker's phone number"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -703,6 +743,7 @@ export default function EditResident() {
                         value={formData.brokerEmail}
                         onChange={(e) => handleInputChange('brokerEmail', e.target.value)}
                         placeholder="Enter broker's email"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -713,6 +754,7 @@ export default function EditResident() {
                         value={formData.brokerCommission}
                         onChange={(e) => handleInputChange('brokerCommission', e.target.value)}
                         placeholder="Enter commission amount"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                   </div>
@@ -722,100 +764,170 @@ export default function EditResident() {
           )}
 
           {/* Residents Living List */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Residents Living in Flat</CardTitle>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Users className="h-5 w-5 text-[#8c52ff]" />
+                Residents Living in Flat
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end p-4 bg-gradient-to-br from-purple-50/50 to-pink-50/30 dark:from-purple-950/10 dark:to-pink-950/10 rounded-xl border border-purple-100 dark:border-purple-900/50">
                 <div className="space-y-2">
-                  <Label htmlFor="residentName">Name</Label>
+                  <Label htmlFor="residentName" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <User className="h-4 w-4 text-[#8c52ff]" />
+                    Name
+                  </Label>
                   <Input
                     id="residentName"
                     value={newResident.name}
                     onChange={(e) => setNewResident(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Enter resident name"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20 bg-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="residentPhone">Phone Number</Label>
+                  <Label htmlFor="residentPhone" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-[#8c52ff]" />
+                    Phone Number
+                  </Label>
                   <Input
                     id="residentPhone"
                     value={newResident.phoneNumber}
                     onChange={(e) => setNewResident(prev => ({ ...prev, phoneNumber: e.target.value }))}
                     placeholder="Enter phone number"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20 bg-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dateJoined">Date Joined</Label>
+                  <Label htmlFor="dateJoined" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-[#8c52ff]" />
+                    Date Joined
+                  </Label>
                   <Input
                     id="dateJoined"
                     type="date"
                     value={newResident.dateJoined}
                     onChange={(e) => setNewResident(prev => ({ ...prev, dateJoined: e.target.value }))}
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20 bg-white"
                   />
                 </div>
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     addResident();
                   }}
+                  className="bg-gradient-to-r from-[#8c52ff] to-purple-600 hover:from-[#9d62ff] hover:to-purple-700 text-white shadow-lg shadow-[#8c52ff]/30 h-12 transition-all duration-300 hover:scale-105 active:scale-95"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Resident
+                  <Plus className="h-5 w-5 mr-2" />
+                  <span className="font-semibold">Add Resident</span>
                 </Button>
               </div>
 
               {residentsList.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium">Added Residents:</h4>
-                  {residentsList.map((resident) => (
-                    <div key={resident.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1 grid grid-cols-3 gap-4">
-                        <span className="font-medium">{resident.name}</span>
-                        <span className="text-muted-foreground">{resident.phoneNumber}</span>
-                        <span className="text-muted-foreground">{new Date(resident.dateJoined).toLocaleDateString()}</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeResident(resident.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-[#8c52ff]" />
+                    Added Residents ({residentsList.length})
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+                          <th className="text-left py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Name</th>
+                          <th className="text-left py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Phone Number</th>
+                          <th className="text-left py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Date Joined</th>
+                          <th className="text-right py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {residentsList.map((resident, idx) => (
+                          <tr
+                            key={resident.id}
+                            className={cn(
+                              "border-b border-gray-100 dark:border-gray-800 transition-colors duration-200",
+                              "hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/30 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20",
+                              idx % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/50 dark:bg-gray-800/50"
+                            )}
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#8c52ff] to-purple-600 flex items-center justify-center text-white font-semibold">
+                                  {resident.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">{resident.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                <Phone className="h-4 w-4 text-gray-400" />
+                                <span>{resident.phoneNumber}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                <Calendar className="h-4 w-4 text-gray-400" />
+                                <span>{new Date(resident.dateJoined).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeResident(resident.id)}
+                                className="h-9 w-9 p-0 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300 dark:hover:border-red-700 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* Vehicles */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Vehicles</CardTitle>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Car className="h-5 w-5 text-[#8c52ff]" />
+                Vehicles
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end p-4 bg-gradient-to-br from-purple-50/50 to-pink-50/30 dark:from-purple-950/10 dark:to-pink-950/10 rounded-xl border border-purple-100 dark:border-purple-900/50">
                 <div className="space-y-2">
-                  <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+                  <Label htmlFor="vehicleNumber" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    Vehicle Number
+                  </Label>
                   <Input
                     id="vehicleNumber"
                     value={newVehicle.vehicleNumber}
                     onChange={(e) => setNewVehicle(prev => ({ ...prev, vehicleNumber: e.target.value }))}
                     placeholder="e.g., MH-01-AB-1234"
+                    className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20 bg-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vehicleType">Vehicle Type</Label>
+                  <Label htmlFor="vehicleType" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    Vehicle Type
+                  </Label>
                   <Select
                     value={newVehicle.vehicleType}
                     onValueChange={(value) => setNewVehicle(prev => ({ ...prev, vehicleType: value }))}
                   >
-                    <SelectTrigger id="vehicleType">
+                    <SelectTrigger id="vehicleType" className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20">
                       <SelectValue placeholder="Select vehicle type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -832,45 +944,80 @@ export default function EditResident() {
                     e.stopPropagation();
                     addVehicle();
                   }}
+                  className="bg-gradient-to-r from-[#8c52ff] to-purple-600 hover:from-[#9d62ff] hover:to-purple-700 text-white shadow-lg shadow-[#8c52ff]/30 h-12 transition-all duration-300 hover:scale-105 active:scale-95"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Vehicle
+                  <Plus className="h-5 w-5 mr-2" />
+                  <span className="font-semibold">Add Vehicle</span>
                 </Button>
               </div>
 
               {vehicles.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium">Added Vehicles:</h4>
-                  {vehicles.map((vehicle) => (
-                    <div key={vehicle.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Car className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{vehicle.vehicleNumber}</div>
-                          <div className="text-sm text-muted-foreground capitalize">{vehicle.vehicleType}</div>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeVehicle(vehicle.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Car className="h-5 w-5 text-[#8c52ff]" />
+                    Added Vehicles ({vehicles.length})
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
+                          <th className="text-left py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Vehicle Number</th>
+                          <th className="text-left py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Type</th>
+                          <th className="text-right py-4 px-4 font-semibold text-gray-900 dark:text-gray-100">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vehicles.map((vehicle) => (
+                          <tr
+                            key={vehicle.id}
+                            className="border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/30 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-colors duration-200"
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#8c52ff] to-purple-600 flex items-center justify-center text-white font-semibold">
+                                  <Car className="h-5 w-5" />
+                                </div>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">{vehicle.vehicleNumber}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 capitalize text-gray-700 dark:text-gray-300">
+                              {vehicle.vehicleType}
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeVehicle(vehicle.id)}
+                                className="h-9 w-9 p-0 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300 dark:hover:border-red-700 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* Documents */}
-          <Card>
-            <CardHeader>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50/30 dark:from-gray-800 dark:to-purple-950/20 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
-                <CardTitle>Additional Documents</CardTitle>
-                <Button type="button" variant="outline" onClick={addDocument}>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <FileText className="h-5 w-5 text-[#8c52ff]" />
+                  Additional Documents
+                </CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addDocument}
+                  className="border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Document
                 </Button>
@@ -936,12 +1083,31 @@ export default function EditResident() {
           </Card>
 
           {/* Submit Buttons */}
-          <div className="flex justify-end space-x-4">
-            <Button type="button" variant="outline" onClick={() => navigate(`/residents/${id}`)}>
+          <div className="flex justify-end gap-4 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(`/residents/${id}`)}
+              className="h-12 px-6 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Updating...' : 'Update Resident'}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-gradient-to-r from-[#8c52ff] to-purple-600 hover:from-[#9d62ff] hover:to-purple-700 text-white shadow-lg shadow-[#8c52ff]/30 h-12 px-8 transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-5 w-5 mr-2" />
+                  Update Resident
+                </>
+              )}
             </Button>
           </div>
         </form>

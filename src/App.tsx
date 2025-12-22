@@ -20,7 +20,7 @@ import NoticeBoard from './pages/NoticeBoard';
 import Maintenance from './pages/Maintenance';
 import MaintenancePayments from './pages/MaintenancePayments';
 // import Amenities from './pages/Amenities';
-// import Finance from './pages/Finance';
+import Finance from './pages/Finance';
 // import Visitors from './pages/Visitors';
 // import Security from './pages/Security';
 // import SecurityAdvanced from './pages/SecurityAdvanced';
@@ -46,218 +46,266 @@ import EditPermission from './pages/EditPermission';
 import ChangeOwner from './pages/ChangeOwner';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import DepositeOnRenovation from './pages/DepositeOnRenovation';
+import CreateDepositeOnRenovation from './pages/CreateDepositeOnRenovation';
+import EditDepositeOnRenovation from './pages/EditDepositeOnRenovation';
+import DepositeOnRenovationDetail from './pages/DepositeOnRenovationDetail';
+import SocietyOwnedRooms from './pages/SocietyOwnedRooms';
+import CreateSocietyOwnedRoom from './pages/CreateSocietyOwnedRoom';
+import EditSocietyOwnedRoom from './pages/EditSocietyOwnedRoom';
+import SocietyOwnedRoomDetail from './pages/SocietyOwnedRoomDetail';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <Provider store={store}>
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/residents" element={
-              <ProtectedRoute>
-                <Residents />
-              </ProtectedRoute>
-            } />
-            <Route path="/residents/create" element={
-              <ProtectedRoute>
-                <CreateResident />
-              </ProtectedRoute>
-            } />
-            <Route path="/residents/:id" element={
-              <ProtectedRoute>
-                <ResidentDetail />
-              </ProtectedRoute>
-            } />
-            <Route path="/residents/:id/edit" element={
-              <ProtectedRoute>
-                <EditResident />
-              </ProtectedRoute>
-            } />
-            <Route path="/residents/:id/change-owner" element={
-              <ProtectedRoute>
-                <ChangeOwner />
-              </ProtectedRoute>
-            } />
-            <Route path="/notices" element={
-              <ProtectedRoute>
-                <NoticeBoard />
-              </ProtectedRoute>
-            } />
-            <Route path="/maintenance" element={
-              <ProtectedRoute>
-                <Maintenance />
-              </ProtectedRoute>
-            } />
-            <Route path="/maintenance-payments" element={
-              <ProtectedRoute>
-                <MaintenancePayments />
-              </ProtectedRoute>
-            } />
-            {/* Commented out routes - to be implemented later */}
-            {/* <Route path="/amenities" element={
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/residents" element={
+                <ProtectedRoute>
+                  <Residents />
+                </ProtectedRoute>
+              } />
+              <Route path="/residents/create" element={
+                <ProtectedRoute>
+                  <CreateResident />
+                </ProtectedRoute>
+              } />
+              <Route path="/residents/:id" element={
+                <ProtectedRoute>
+                  <ResidentDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/residents/:id/edit" element={
+                <ProtectedRoute>
+                  <EditResident />
+                </ProtectedRoute>
+              } />
+              <Route path="/residents/:id/change-owner" element={
+                <ProtectedRoute>
+                  <ChangeOwner />
+                </ProtectedRoute>
+              } />
+              <Route path="/notices" element={
+                <ProtectedRoute>
+                  <NoticeBoard />
+                </ProtectedRoute>
+              } />
+              <Route path="/maintenance" element={
+                <ProtectedRoute>
+                  <Maintenance />
+                </ProtectedRoute>
+              } />
+              <Route path="/maintenance-payments" element={
+                <ProtectedRoute>
+                  <MaintenancePayments />
+                </ProtectedRoute>
+              } />
+              {/* Commented out routes - to be implemented later */}
+              {/* <Route path="/amenities" element={
               <ProtectedRoute>
                 <Amenities />
               </ProtectedRoute>
             } /> */}
-            {/* <Route path="/finance" element={
-              <ProtectedRoute>
-                <Finance />
-              </ProtectedRoute>
-            } /> */}
-            {/* <Route path="/visitors" element={
+              <Route path="/finance" element={
+                <ProtectedRoute>
+                  <Finance />
+                </ProtectedRoute>
+              } />
+              {/* <Route path="/visitors" element={
               <ProtectedRoute>
                 <Visitors />
               </ProtectedRoute>
             } /> */}
-            {/* <Route path="/security" element={
+              {/* <Route path="/security" element={
               <ProtectedRoute>
                 <Security />
               </ProtectedRoute>
             } /> */}
-            {/* <Route path="/security-advanced" element={
+              {/* <Route path="/security-advanced" element={
               <ProtectedRoute>
                 <SecurityAdvanced />
               </ProtectedRoute>
             } /> */}
-            {/* <Route path="/parking" element={
+              {/* <Route path="/parking" element={
               <ProtectedRoute>
                 <Parking />
               </ProtectedRoute>
             } /> */}
-            <Route path="/vendors" element={
-              <ProtectedRoute>
-                <Vendors />
-              </ProtectedRoute>
-            } />
-            <Route path="/vendors/create" element={
-              <ProtectedRoute>
-                <StaffRoute>
-                <CreateVendor />
-                </StaffRoute>
-              </ProtectedRoute>
-            } />
-            <Route path="/vendors/:id" element={
-              <ProtectedRoute>
-                <VendorDetail />
-              </ProtectedRoute>
-            } />
-            <Route path="/vendors/create-invoice" element={
-              <ProtectedRoute>
-                <StaffRoute>
-                  <CreateVendorInvoice />
-                </StaffRoute>
-              </ProtectedRoute>
-            } />
-            <Route path="/vendors/:vendorId/create-invoice" element={
-              <ProtectedRoute>
-                <StaffRoute>
-                <CreateVendorInvoice />
-                </StaffRoute>
-              </ProtectedRoute>
-            } />
-            <Route path="/helpers" element={
-              <ProtectedRoute>
-                <Helpers />
-              </ProtectedRoute>
-            } />
-            <Route path="/helpers/create" element={
-              <ProtectedRoute>
-                <CreateHelper />
-              </ProtectedRoute>
-            } />
-            <Route path="/helpers/:id" element={
-              <ProtectedRoute>
-                <HelperDetail />
-              </ProtectedRoute>
-            } />
-            <Route path="/helpers/:id/edit" element={
-              <ProtectedRoute>
-                <EditHelper />
-              </ProtectedRoute>
-            } />
-            <Route path="/complaints" element={
-              <ProtectedRoute>
-                <Complaints />
-              </ProtectedRoute>
-            } />
-            <Route path="/complaints/create" element={
-              <ProtectedRoute>
-                <CreateComplaint />
-              </ProtectedRoute>
-            } />
-            <Route path="/complaints/:id" element={
-              <ProtectedRoute>
-                <ComplaintDetail />
-              </ProtectedRoute>
-            } />
-            <Route path="/complaints/:id/edit" element={
-              <ProtectedRoute>
-                <EditComplaint />
-              </ProtectedRoute>
-            } />
-            <Route path="/permissions" element={
-              <ProtectedRoute>
-                <Permissions />
-              </ProtectedRoute>
-            } />
-            <Route path="/permissions/create" element={
-              <ProtectedRoute>
-                <CreatePermission />
-              </ProtectedRoute>
-            } />
-            <Route path="/permissions/:id" element={
-              <ProtectedRoute>
-                <PermissionDetail />
-              </ProtectedRoute>
-            } />
-            <Route path="/permissions/:id/edit" element={
-              <ProtectedRoute>
-                <EditPermission />
-              </ProtectedRoute>
-            } />
-            <Route path="/users" element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <UsersList />
-                </AdminRoute>
-              </ProtectedRoute>
-            } />
-            <Route path="/users/create" element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <CreateUser />
-                </AdminRoute>
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+              <Route path="/vendors" element={
+                <ProtectedRoute>
+                  <Vendors />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendors/create" element={
+                <ProtectedRoute>
+                  <StaffRoute>
+                    <CreateVendor />
+                  </StaffRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/vendors/:id" element={
+                <ProtectedRoute>
+                  <VendorDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/vendors/create-invoice" element={
+                <ProtectedRoute>
+                  <StaffRoute>
+                    <CreateVendorInvoice />
+                  </StaffRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/vendors/:vendorId/create-invoice" element={
+                <ProtectedRoute>
+                  <StaffRoute>
+                    <CreateVendorInvoice />
+                  </StaffRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/helpers" element={
+                <ProtectedRoute>
+                  <Helpers />
+                </ProtectedRoute>
+              } />
+              <Route path="/helpers/create" element={
+                <ProtectedRoute>
+                  <CreateHelper />
+                </ProtectedRoute>
+              } />
+              <Route path="/helpers/:id" element={
+                <ProtectedRoute>
+                  <HelperDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/helpers/:id/edit" element={
+                <ProtectedRoute>
+                  <EditHelper />
+                </ProtectedRoute>
+              } />
+              <Route path="/complaints" element={
+                <ProtectedRoute>
+                  <Complaints />
+                </ProtectedRoute>
+              } />
+              <Route path="/complaints/create" element={
+                <ProtectedRoute>
+                  <CreateComplaint />
+                </ProtectedRoute>
+              } />
+              <Route path="/complaints/:id" element={
+                <ProtectedRoute>
+                  <ComplaintDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/complaints/:id/edit" element={
+                <ProtectedRoute>
+                  <EditComplaint />
+                </ProtectedRoute>
+              } />
+              <Route path="/permissions" element={
+                <ProtectedRoute>
+                  <Permissions />
+                </ProtectedRoute>
+              } />
+              <Route path="/permissions/create" element={
+                <ProtectedRoute>
+                  <CreatePermission />
+                </ProtectedRoute>
+              } />
+              <Route path="/permissions/:id" element={
+                <ProtectedRoute>
+                  <PermissionDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/permissions/:id/edit" element={
+                <ProtectedRoute>
+                  <EditPermission />
+                </ProtectedRoute>
+              } />
+              <Route path="/users" element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <UsersList />
+                  </AdminRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/users/create" element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <CreateUser />
+                  </AdminRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses/deposite-on-renovation" element={
+                <ProtectedRoute>
+                  <DepositeOnRenovation />
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses/deposite-on-renovation/create" element={
+                <ProtectedRoute>
+                  <CreateDepositeOnRenovation />
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses/deposite-on-renovation/:id" element={
+                <ProtectedRoute>
+                  <DepositeOnRenovationDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses/deposite-on-renovation/:id/edit" element={
+                <ProtectedRoute>
+                  <EditDepositeOnRenovation />
+                </ProtectedRoute>
+              } />
+              <Route path="/society-owned-rooms" element={
+                <ProtectedRoute>
+                  <SocietyOwnedRooms />
+                </ProtectedRoute>
+              } />
+              <Route path="/society-owned-rooms/create" element={
+                <ProtectedRoute>
+                  <CreateSocietyOwnedRoom />
+                </ProtectedRoute>
+              } />
+              <Route path="/society-owned-rooms/:id" element={
+                <ProtectedRoute>
+                  <SocietyOwnedRoomDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/society-owned-rooms/:id/edit" element={
+                <ProtectedRoute>
+                  <EditSocietyOwnedRoom />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   </Provider>
 );
 

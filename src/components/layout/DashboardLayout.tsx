@@ -17,7 +17,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="block">
         <Sidebar isCollapsed={isSidebarCollapsed} />
       </div>
-      
+
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <Header onToggleSidebar={toggleSidebar} isSidebarCollapsed={isSidebarCollapsed} />

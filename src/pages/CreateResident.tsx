@@ -525,6 +525,7 @@ export default function CreateResident() {
                         value={formData.currentRenterName}
                         onChange={(e) => handleInputChange('currentRenterName', e.target.value)}
                         placeholder="Enter renter's name"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -534,6 +535,7 @@ export default function CreateResident() {
                         value={formData.currentRenterPhone}
                         onChange={(e) => handleInputChange('currentRenterPhone', e.target.value)}
                         placeholder="Enter phone number"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -544,6 +546,7 @@ export default function CreateResident() {
                         value={formData.currentRenterEmail}
                         onChange={(e) => handleInputChange('currentRenterEmail', e.target.value)}
                         placeholder="Enter email address"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                   </div>
@@ -561,6 +564,7 @@ export default function CreateResident() {
                         value={formData.oldRenterName}
                         onChange={(e) => handleInputChange('oldRenterName', e.target.value)}
                         placeholder="Enter previous renter's name"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -570,6 +574,7 @@ export default function CreateResident() {
                         value={formData.oldRenterPhone}
                         onChange={(e) => handleInputChange('oldRenterPhone', e.target.value)}
                         placeholder="Enter phone number"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -580,6 +585,7 @@ export default function CreateResident() {
                         value={formData.oldRenterEmail}
                         onChange={(e) => handleInputChange('oldRenterEmail', e.target.value)}
                         placeholder="Enter email address"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                   </div>
@@ -595,6 +601,7 @@ export default function CreateResident() {
                       type="date"
                       value={formData.rentStartDate}
                       onChange={(e) => handleInputChange('rentStartDate', e.target.value)}
+                      className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     />
                   </div>
                   <div className="space-y-2">
@@ -604,6 +611,7 @@ export default function CreateResident() {
                       type="date"
                       value={formData.rentEndDate}
                       onChange={(e) => handleInputChange('rentEndDate', e.target.value)}
+                      className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     />
                   </div>
                   <div className="space-y-2">
@@ -614,6 +622,7 @@ export default function CreateResident() {
                       value={formData.monthlyRent}
                       onChange={(e) => handleInputChange('monthlyRent', e.target.value)}
                       placeholder="Enter monthly rent amount"
+                      className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                     />
                   </div>
                 </div>
@@ -630,6 +639,7 @@ export default function CreateResident() {
                         value={formData.brokerName}
                         onChange={(e) => handleInputChange('brokerName', e.target.value)}
                         placeholder="Enter broker's name"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -639,6 +649,7 @@ export default function CreateResident() {
                         value={formData.brokerPhone}
                         onChange={(e) => handleInputChange('brokerPhone', e.target.value)}
                         placeholder="Enter broker's phone number"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -649,6 +660,7 @@ export default function CreateResident() {
                         value={formData.brokerEmail}
                         onChange={(e) => handleInputChange('brokerEmail', e.target.value)}
                         placeholder="Enter broker's email"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -659,6 +671,7 @@ export default function CreateResident() {
                         value={formData.brokerCommission}
                         onChange={(e) => handleInputChange('brokerCommission', e.target.value)}
                         placeholder="Enter commission amount"
+                        className="h-12 text-base border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20"
                       />
                     </div>
                   </div>
