@@ -21,6 +21,7 @@ import Maintenance from './pages/Maintenance';
 import MaintenancePayments from './pages/MaintenancePayments';
 // import Amenities from './pages/Amenities';
 import Finance from './pages/Finance';
+import FinancePassbookPreview from './pages/FinancePassbookPreview';
 // import Visitors from './pages/Visitors';
 // import Security from './pages/Security';
 // import SecurityAdvanced from './pages/SecurityAdvanced';
@@ -123,6 +124,11 @@ const App = () => (
               <Route path="/finance" element={
                 <ProtectedRoute>
                   <Finance />
+                </ProtectedRoute>
+              } />
+              <Route path="/finance/passbook-preview" element={
+                <ProtectedRoute>
+                  <FinancePassbookPreview />
                 </ProtectedRoute>
               } />
               {/* <Route path="/visitors" element={

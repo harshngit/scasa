@@ -8,7 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Loader2, TrendingUp, TrendingDown, DollarSign, Calendar, Building2, Home, Receipt, ArrowUpDown, Plus, CreditCard } from 'lucide-react';
+import { Search, Loader2, TrendingUp, TrendingDown, DollarSign, Calendar, Building2, Home, Receipt, ArrowUpDown, Plus, CreditCard, Download, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import { autoTable } from 'jspdf-autotable';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -58,13 +61,19 @@ interface Vendor {
 }
 
 export default function Finance() {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'maintenance' | 'vendor' | 'deposit' | 'society_room'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  
+
+  const formatINR = (value: number) =>
+    new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(
+      Number.isFinite(value) ? Math.round(value) : 0
+    );
+
   // Make Payment Form State
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<string>('');
@@ -75,6 +84,11 @@ export default function Finance() {
   const [paymentMode, setPaymentMode] = useState<string>('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
+  const formatINR2 = (value: number) =>
+    new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+      Number.isFinite(value) ? value : 0
+    );
 
   useEffect(() => {
     fetchAllFinanceData();
@@ -158,15 +172,15 @@ export default function Finance() {
       if (!billingError && billingHistory) {
         billingHistory.forEach((payment) => {
           const vendorName = (payment.vendors as any)?.vendor_name || 'Vendor';
-          const paymentModeLabel = payment.payment_mode 
-            ? payment.payment_mode.split('_').map((word: string) => 
-                word.charAt(0).toUpperCase() + word.slice(1)
-              ).join(' ')
+          const paymentModeLabel = payment.payment_mode
+            ? payment.payment_mode.split('_').map((word: string) =>
+              word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ')
             : '';
-          const description = paymentModeLabel 
+          const description = paymentModeLabel
             ? `Vendor Payment - ${vendorName} (${paymentModeLabel})`
             : `Vendor Payment - ${vendorName}`;
-          
+
           allTransactions.push({
             id: payment.id,
             type: 'vendor',
@@ -247,13 +261,13 @@ export default function Finance() {
   };
 
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = 
+    const matchesSearch =
       transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesType = filterType === 'all' || transaction.type === filterType;
-    
+
     return matchesSearch && matchesType;
   });
 
@@ -293,11 +307,11 @@ export default function Finance() {
     }
   };
 
-  const creditTransactions = filteredTransactions.filter(t => 
+  const creditTransactions = filteredTransactions.filter(t =>
     ['maintenance', 'deposit', 'society_room'].includes(t.type)
   );
-  
-  const debitTransactions = filteredTransactions.filter(t => 
+
+  const debitTransactions = filteredTransactions.filter(t =>
     t.type === 'vendor'
   );
 
@@ -320,6 +334,393 @@ export default function Finance() {
       return sortOrder === 'desc' ? b.amount - a.amount : a.amount - b.amount;
     }
   });
+
+  const downloadPassbook = () => {
+    try {
+      // Use full data (not filtered by search/filter) to match preview
+      const pdfCreditTransactions = transactions.filter(t =>
+        ['maintenance', 'deposit', 'society_room'].includes(t.type)
+      );
+      const pdfDebitTransactions = transactions.filter(t => t.type === 'vendor');
+      const pdfCreditsTotal = pdfCreditTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const pdfDebitsTotal = pdfDebitTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const pdfBalance = pdfCreditsTotal - pdfDebitsTotal;
+
+      // Calculate category totals
+      const pdfMaintenanceTotal = transactions.filter(t => t.type === 'maintenance').reduce((sum, t) => sum + t.amount, 0);
+      const pdfVendorTotal = transactions.filter(t => t.type === 'vendor').reduce((sum, t) => sum + t.amount, 0);
+      const pdfDepositTotal = transactions.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
+      const pdfRoomTotal = transactions.filter(t => t.type === 'society_room').reduce((sum, t) => sum + t.amount, 0);
+
+      // Sort transactions by date (descending)
+      const sortedPdfCreditTransactions = [...pdfCreditTransactions].sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+      const sortedPdfDebitTransactions = [...pdfDebitTransactions].sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let yPosition = 20;
+      const margin = 20;
+
+      // Helper function to format INR
+      const formatINR = (amount: number) => {
+        return amount.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+      };
+
+      // Header with gradient effect
+      doc.setFillColor(140, 82, 255);
+      doc.rect(0, 0, pageWidth, 25, 'F');
+
+      doc.setFontSize(22);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Finance Passbook', margin, 18);
+
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'normal');
+      const generatedDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      doc.text(`Generated on: ${generatedDate}`, margin, 24);
+      yPosition = 35;
+
+      // Summary Section with styled boxes
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Financial Summary', margin, yPosition);
+      yPosition += 10;
+
+      // Create 4 summary boxes in 2x2 grid
+      const cardWidth = (pageWidth - margin * 2 - 10) / 2;
+      const cardHeight = 25;
+      const cardGap = 10;
+      const startX = margin;
+
+      const cards = [
+        {
+          title: 'Total Credits',
+          value: formatINR(pdfCreditsTotal),
+          color: [16, 185, 129],
+          bg: [236, 253, 245],
+        },
+        {
+          title: 'Total Debits',
+          value: formatINR(pdfDebitsTotal),
+          color: [239, 68, 68],
+          bg: [254, 242, 242],
+        },
+        {
+          title: 'Balance',
+          value: formatINR(pdfBalance),
+          color: pdfBalance >= 0 ? [16, 185, 129] : [239, 68, 68],
+          bg: pdfBalance >= 0 ? [236, 253, 245] : [254, 242, 242],
+        },
+        {
+          title: 'Total Transactions',
+          value: transactions.length.toString(),
+          color: [124, 58, 237],
+          bg: [245, 243, 255],
+        },
+      ];
+
+      cards.forEach((card, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const x = startX + col * (cardWidth + cardGap);
+        const y = yPosition + row * (cardHeight + cardGap);
+        const [bgR, bgG, bgB] = card.bg;
+        const [cR, cG, cB] = card.color;
+
+        // Draw box with rounded corners effect
+        doc.setFillColor(bgR, bgG, bgB);
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'FD');
+
+        // Title
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(card.title, x + 5, y + 8);
+
+        // Value
+        doc.setTextColor(cR, cG, cB);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        const valueText = card.title === 'Total Transactions' ? card.value : `₹${card.value}`;
+        doc.text(valueText, x + 5, y + 18);
+      });
+
+      yPosition += 2 * (cardHeight + cardGap) + 15;
+
+      // Summary Table
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Summary', margin, yPosition);
+      yPosition += 8;
+
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Item', 'Amount']],
+        body: [
+          ['Total Credits', `₹${formatINR(pdfCreditsTotal)}`],
+          ['Total Debits', `₹${formatINR(pdfDebitsTotal)}`],
+          ['Balance', `₹${formatINR(pdfBalance)}`],
+          ['Total Transactions', transactions.length.toString()],
+        ],
+        theme: 'striped',
+        headStyles: {
+          fillColor: [140, 82, 255],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 11
+        },
+        styles: {
+          fontSize: 10,
+          cellPadding: 4,
+          lineColor: [220, 220, 220],
+          lineWidth: 0.5
+        },
+        columnStyles: {
+          0: { cellWidth: 80, fontStyle: 'bold' },
+          1: { cellWidth: 80, halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: margin, right: margin },
+      });
+      yPosition = (doc as any).lastAutoTable?.finalY + 15 || yPosition + 30;
+
+      // Category Breakdown
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Category Breakdown', margin, yPosition);
+      yPosition += 8;
+
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Category', 'Amount']],
+        body: [
+          ['Maintenance', `₹${formatINR(pdfMaintenanceTotal)}`],
+          ['Vendors', `₹${formatINR(pdfVendorTotal)}`],
+          ['Deposits', `₹${formatINR(pdfDepositTotal)}`],
+          ['Room Rent', `₹${formatINR(pdfRoomTotal)}`],
+        ],
+        theme: 'striped',
+        headStyles: {
+          fillColor: [140, 82, 255],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 11
+        },
+        styles: {
+          fontSize: 10,
+          cellPadding: 4,
+          lineColor: [220, 220, 220],
+          lineWidth: 0.5
+        },
+        columnStyles: {
+          0: { cellWidth: 80, fontStyle: 'bold' },
+          1: { cellWidth: 80, halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: margin, right: margin },
+      });
+      yPosition = (doc as any).lastAutoTable?.finalY + 15 || yPosition + 30;
+
+      // Credit Transactions
+      if (sortedPdfCreditTransactions.length > 0) {
+        // Check if we need a new page
+        if (yPosition > pageHeight - 60) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(16, 185, 129);
+        doc.text('Credit Transactions', margin, yPosition);
+        yPosition += 8;
+
+        const creditTableData = sortedPdfCreditTransactions.map((transaction) => {
+          const date = new Date(transaction.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          });
+          return [
+            date,
+            transaction.description.length > 40 ? transaction.description.substring(0, 37) + '...' : transaction.description,
+            transaction.reference,
+            transaction.category,
+            `₹${formatINR(transaction.amount)}`
+          ];
+        });
+
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['Date', 'Description', 'Reference', 'Category', 'Amount']],
+          body: creditTableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [16, 185, 129],
+            textColor: 255,
+            fontStyle: 'bold',
+            fontSize: 9
+          },
+          styles: {
+            fontSize: 8,
+            cellPadding: 3,
+            lineColor: [220, 220, 220],
+            lineWidth: 0.3
+          },
+          columnStyles: {
+            0: { cellWidth: 28 },
+            1: { cellWidth: 65 },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 28 },
+            4: { cellWidth: 31, halign: 'right', fontStyle: 'bold' }
+          },
+          margin: { left: margin, right: margin },
+        });
+        yPosition = (doc as any).lastAutoTable?.finalY + 8 || yPosition + 20;
+
+        // Credit total
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Total Credits:', pageWidth - margin - 50, yPosition);
+        doc.setTextColor(16, 185, 129);
+        doc.text(`₹${formatINR(pdfCreditsTotal)}`, pageWidth - margin - 5, yPosition, { align: 'right' });
+        yPosition += 12;
+      }
+
+      // Debit Transactions
+      if (sortedPdfDebitTransactions.length > 0) {
+        // Check if we need a new page
+        if (yPosition > pageHeight - 60) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(239, 68, 68);
+        doc.text('Debit Transactions', margin, yPosition);
+        yPosition += 8;
+
+        const debitTableData = sortedPdfDebitTransactions.map((transaction) => {
+          const date = new Date(transaction.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          });
+          return [
+            date,
+            transaction.description.length > 40 ? transaction.description.substring(0, 37) + '...' : transaction.description,
+            transaction.reference,
+            transaction.category,
+            `₹${formatINR(transaction.amount)}`
+          ];
+        });
+
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['Date', 'Description', 'Reference', 'Category', 'Amount']],
+          body: debitTableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [239, 68, 68],
+            textColor: 255,
+            fontStyle: 'bold',
+            fontSize: 9
+          },
+          styles: {
+            fontSize: 8,
+            cellPadding: 3,
+            lineColor: [220, 220, 220],
+            lineWidth: 0.3
+          },
+          columnStyles: {
+            0: { cellWidth: 28 },
+            1: { cellWidth: 65 },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 28 },
+            4: { cellWidth: 31, halign: 'right', fontStyle: 'bold' }
+          },
+          margin: { left: margin, right: margin },
+        });
+        yPosition = (doc as any).lastAutoTable?.finalY + 8 || yPosition + 20;
+
+        // Debit total
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Total Debits:', pageWidth - margin - 50, yPosition);
+        doc.setTextColor(239, 68, 68);
+        doc.text(`₹${formatINR(pdfDebitsTotal)}`, pageWidth - margin - 5, yPosition, { align: 'right' });
+        yPosition += 12;
+      }
+
+      // Final Balance
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(margin, yPosition, pageWidth - margin * 2, 15, 2, 2, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.roundedRect(margin, yPosition, pageWidth - margin * 2, 15, 2, 2, 'S');
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Final Balance:', margin + 5, yPosition + 10);
+      doc.setFontSize(14);
+      if (pdfBalance >= 0) {
+        doc.setTextColor(16, 185, 129);
+      } else {
+        doc.setTextColor(239, 68, 68);
+      }
+      doc.text(`₹${formatINR(pdfBalance)}`, pageWidth - margin - 5, yPosition + 10, { align: 'right' });
+
+      // Footer on each page
+      const totalPages = doc.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+          `Page ${i} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+      }
+
+      // Generate filename with current date
+      const fileName = `Finance_Passbook_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      toast.success('Passbook downloaded successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate passbook');
+    }
+  };
 
   const handleMakePayment = async () => {
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
@@ -502,7 +903,7 @@ export default function Finance() {
           {/* Animated background gradients */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8c52ff]/10 to-purple-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-500/10 to-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
-          
+
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex-1 animate-fade-in">
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#8c52ff] via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 animate-gradient">
@@ -511,6 +912,23 @@ export default function Finance() {
               <p className="text-gray-600 dark:text-gray-400 text-lg">
                 Complete financial overview of all transactions
               </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => navigate('/finance/passbook-preview')}
+                variant="outline"
+                className="border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Preview Passbook
+              </Button>
+              <Button
+                onClick={downloadPassbook}
+                className="bg-gradient-to-r from-[#8c52ff] to-purple-600 hover:from-[#7a45e6] hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Passbook
+              </Button>
             </div>
           </div>
         </div>
@@ -903,8 +1321,8 @@ export default function Finance() {
                     </div>
                   </div>
                   <TabsList className="inline-flex h-14 items-center justify-center rounded-2xl bg-white dark:bg-gray-800 p-1.5 text-gray-600 dark:text-gray-400 shadow-lg border border-gray-200 dark:border-gray-700">
-                    <TabsTrigger 
-                      value="credit" 
+                    <TabsTrigger
+                      value="credit"
                       className={cn(
                         "inline-flex items-center justify-center whitespace-nowrap rounded-xl px-8 py-3.5 text-base font-bold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
                         "data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600",
@@ -921,7 +1339,7 @@ export default function Finance() {
                         {creditTransactions.length}
                       </Badge>
                     </TabsTrigger>
-                    <TabsTrigger 
+                    <TabsTrigger
                       value="debit"
                       className={cn(
                         "inline-flex items-center justify-center whitespace-nowrap rounded-xl px-8 py-3.5 text-base font-bold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
