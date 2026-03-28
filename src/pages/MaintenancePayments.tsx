@@ -85,6 +85,12 @@ export default function MaintenancePayments() {
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
 
+  // Download All Dialog State
+  const [showDownloadAllDialog, setShowDownloadAllDialog] = useState(false);
+  const [downloadAllType, setDownloadAllType] = useState<'invoice' | 'receipt'>('invoice');
+  const [downloadAllMonth, setDownloadAllMonth] = useState<string>('all');
+  const [downloadAllStatus, setDownloadAllStatus] = useState<'all' | 'paid' | 'unpaid' | 'overdue'>('all');
+
   // Preview Invoice Dialog State
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [invoiceCharges, setInvoiceCharges] = useState([
@@ -483,10 +489,16 @@ export default function MaintenancePayments() {
   };
 
   const downloadAllReceipts = () => {
-    const paidPayments = payments.filter(p => p.status === 'paid' && p.receipt_number && p.paid_date);
+    const filteredForDownload = payments.filter(p => {
+      const matchesStatus = downloadAllStatus === 'all' ? p.status === 'paid' : p.status === downloadAllStatus;
+      const matchesMonth = downloadAllMonth === 'all' || months[p.month - 1] === downloadAllMonth;
+      return matchesStatus && matchesMonth;
+    });
+
+    const paidPayments = filteredForDownload.filter(p => p.status === 'paid' && p.receipt_number && p.paid_date);
 
     if (paidPayments.length === 0) {
-      toast.error('No paid payments with receipt numbers found.');
+      toast.error('No paid payments matching the filters with receipt numbers found.');
       return;
     }
 
@@ -535,8 +547,14 @@ export default function MaintenancePayments() {
   };
 
   const downloadAllInvoices = async () => {
-    if (payments.length === 0) {
-      toast.error('No payments found to generate invoices.');
+    const filteredForDownload = payments.filter(p => {
+      const matchesStatus = downloadAllStatus === 'all' || p.status === downloadAllStatus;
+      const matchesMonth = downloadAllMonth === 'all' || months[p.month - 1] === downloadAllMonth;
+      return matchesStatus && matchesMonth;
+    });
+
+    if (filteredForDownload.length === 0) {
+      toast.error('No payments found matching the filters.');
       return;
     }
 
@@ -561,7 +579,7 @@ export default function MaintenancePayments() {
       const billDate = `${String(invoiceDate.getDate()).padStart(2, '0')}.${String(invoiceDate.getMonth() + 1).padStart(2, '0')}.${invoiceDate.getFullYear()}`;
 
       // Prepare all invoice data
-      const allInvoices = payments.map(payment => ({
+      const allInvoices = filteredForDownload.map(payment => ({
         billNumber: payment.receipt_number || `BILL-${payment.id.slice(0, 8).toUpperCase()}`,
         residentName: payment.resident_name,
         flatNumber: payment.flat_number,
@@ -789,11 +807,14 @@ export default function MaintenancePayments() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={downloadAllInvoices}
+                  onClick={() => {
+                    setDownloadAllType('invoice');
+                    setShowDownloadAllDialog(true);
+                  }}
                   disabled={isBulkDownloading}
                   className="border-gray-200 hover:border-[#8c52ff] hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md px-5 py-6 h-auto"
                 >
-                  {isBulkDownloading ? (
+                  {isBulkDownloading && downloadAllType === 'invoice' ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       <span className="font-semibold">Downloading...</span>
@@ -807,11 +828,23 @@ export default function MaintenancePayments() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={downloadAllReceipts}
+                  onClick={() => {
+                    setDownloadAllType('receipt');
+                    setShowDownloadAllDialog(true);
+                  }}
                   className="border-gray-200 hover:border-[#8c52ff] hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md px-5 py-6 h-auto"
                 >
-                  <Download className="mr-2 h-5 w-5" />
-                  <span className="font-semibold">Download All Receipts</span>
+                  {isBulkDownloading && downloadAllType === 'receipt' ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <span className="font-semibold">Downloading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-5 w-5" />
+                      <span className="font-semibold">Download All Receipts</span>
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
@@ -941,7 +974,7 @@ export default function MaintenancePayments() {
                 <SelectTrigger className="w-full sm:w-[150px] h-12 border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="unpaid">Unpaid</SelectItem>
@@ -952,7 +985,7 @@ export default function MaintenancePayments() {
                 <SelectTrigger className="w-full sm:w-[150px] h-12 border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20">
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <SelectItem value="all">All Months</SelectItem>
                   {months.map(month => (
                     <SelectItem key={month} value={month}>{month}</SelectItem>
@@ -963,7 +996,7 @@ export default function MaintenancePayments() {
                 <SelectTrigger className="w-full sm:w-[120px] h-12 border-gray-200 focus:border-[#8c52ff] focus:ring-[#8c52ff]/20">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <SelectItem value="all">All Years</SelectItem>
                   {years.map(year => (
                     <SelectItem key={year} value={year}>{year}</SelectItem>
@@ -1145,7 +1178,7 @@ export default function MaintenancePayments() {
                                         title="Mark as Paid"
                                       >
                                         <CheckCircle className="mr-2 h-4 w-4" />
-                                        Paid
+                                        Pay
                                       </Button>
                                     )}
                                     {payment.status === 'paid' && payment.receipt_number && (
@@ -1170,7 +1203,7 @@ export default function MaintenancePayments() {
                                           View Details
                                         </Button>
                                       </DialogTrigger>
-                                      <DialogContent className="sm:max-w-[500px]">
+                                      <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                                         <DialogHeader>
                                           <DialogTitle>Payment Details</DialogTitle>
                                         </DialogHeader>
@@ -1537,9 +1570,82 @@ export default function MaintenancePayments() {
           </TabsContent>
         </Tabs>
 
+        {/* Download All Dialog */}
+        <Dialog open={showDownloadAllDialog} onOpenChange={setShowDownloadAllDialog}>
+          <DialogContent className="w-[95vw] sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Download All {downloadAllType === 'invoice' ? 'Invoices' : 'Receipts'}</DialogTitle>
+              <DialogDescription>
+                Select filters for the {downloadAllType}s you want to download.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="download-month">Month</Label>
+                <Select value={downloadAllMonth} onValueChange={setDownloadAllMonth}>
+                  <SelectTrigger id="download-month">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    <SelectItem value="all">All Months</SelectItem>
+                    {months.map(month => (
+                      <SelectItem key={month} value={month}>{month}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {downloadAllType === 'invoice' && (
+                <div className="space-y-2">
+                  <Label htmlFor="download-status">Status</Label>
+                  <Select value={downloadAllStatus} onValueChange={(value: any) => setDownloadAllStatus(value)}>
+                    <SelectTrigger id="download-status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="unpaid">Unpaid</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDownloadAllDialog(false)} disabled={isBulkDownloading}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowDownloadAllDialog(false);
+                  if (downloadAllType === 'invoice') {
+                    downloadAllInvoices();
+                  } else {
+                    downloadAllReceipts();
+                  }
+                }} 
+                disabled={isBulkDownloading}
+                className="bg-[#8c52ff] hover:bg-[#7a45e6] text-white"
+              >
+                {isBulkDownloading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Generate Payments Dialog */}
         <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent className="w-[95vw] sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Generate Maintenance Payments</DialogTitle>
             </DialogHeader>
@@ -1550,7 +1656,7 @@ export default function MaintenancePayments() {
                   <SelectTrigger id="month">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {months.map((month, index) => (
                       <SelectItem key={month} value={(index + 1).toString()}>{month}</SelectItem>
                     ))}
@@ -1586,7 +1692,7 @@ export default function MaintenancePayments() {
 
         {/* Preview Invoice Dialog */}
         <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Preview Invoice - {months[generatingMonth - 1]} {generatingYear}</DialogTitle>
               <DialogDescription>
@@ -1696,7 +1802,7 @@ export default function MaintenancePayments() {
 
         {/* Payment Dialog */}
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-          <DialogContent className="sm:max-w-[450px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-[450px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Record Payment</DialogTitle>
             </DialogHeader>
@@ -1743,7 +1849,7 @@ export default function MaintenancePayments() {
                     <SelectTrigger id="paymentMethod">
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                       <SelectItem value="Cash">Cash</SelectItem>
                       <SelectItem value="Online Transfer">Online Transfer</SelectItem>
                       <SelectItem value="Cheque">Cheque</SelectItem>
